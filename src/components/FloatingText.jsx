@@ -6,6 +6,7 @@ import { easing } from 'maath'
 export default function FloatingText({ scrollData }) {
     const textRef = useRef()
     const materialRef = useRef()
+    const baseTextZ = 3.4
 
     useFrame((state, delta) => {
         if (!textRef.current || !materialRef.current) return
@@ -21,23 +22,24 @@ export default function FloatingText({ scrollData }) {
         easing.damp3(textRef.current.scale, [targetScale, targetScale, targetScale], 0.2, delta)
 
         // Move text position based on scroll
-        const targetZ = 2 - scrollOffset * 3
+        const targetZ = baseTextZ - scrollOffset * 3
         easing.damp(textRef.current.position, 'z', targetZ, 0.2, delta)
     })
 
     return (
-        <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+        <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
             <Text
                 ref={textRef}
                 font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
                 fontSize={1}
                 color="white"
-                position={[0, 0, 2]}
+                position={[0, 0, baseTextZ]}
                 anchorX="center"
                 anchorY="middle"
                 maxWidth={10}
                 textAlign="center"
                 letterSpacing={0.1}
+                renderOrder={20}
             >
                 THE INNER SYSTEM
                 <meshStandardMaterial
@@ -46,6 +48,8 @@ export default function FloatingText({ scrollData }) {
                     transparent
                     opacity={1}
                     toneMapped={false}
+                    depthTest={false}
+                    depthWrite={false}
                 />
             </Text>
         </Float>

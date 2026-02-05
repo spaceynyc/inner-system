@@ -25,34 +25,38 @@ export default function Preloader() {
             }}
         >
             <div className="preloader-content">
-                {/* Animated geometric shape */}
-                <div className="preloader-shape">
-                    <div className="preloader-inner">
-                        <svg viewBox="0 0 100 100" className="preloader-icon">
-                            {/* Background pentagon */}
-                            <polygon
-                                points="50,5 95,35 80,90 20,90 5,35"
-                                fill="none"
-                                stroke="rgba(170, 204, 255, 0.15)"
-                                strokeWidth="1"
-                            />
-                            {/* Animated progress pentagon */}
-                            <polygon
-                                points="50,5 95,35 80,90 20,90 5,35"
-                                fill="none"
-                                stroke="rgba(170, 204, 255, 0.8)"
-                                strokeWidth="1.5"
-                                strokeDasharray="280"
-                                strokeDashoffset={280 - (progress * 2.8)}
-                                strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-                            />
-                        </svg>
+                <div className="preloader-core">
+                    {/* Animated geometric shape */}
+                    <div className="preloader-shape">
+                        <div className="preloader-inner">
+                            <svg viewBox="0 0 100 100" className="preloader-icon">
+                                {/* Background pentagon */}
+                                <polygon
+                                    points="50,5 95,35 80,90 20,90 5,35"
+                                    fill="none"
+                                    stroke="rgba(170, 204, 255, 0.15)"
+                                    strokeWidth="1"
+                                />
+                                {/* Animated progress pentagon */}
+                                <polygon
+                                    points="50,5 95,35 80,90 20,90 5,35"
+                                    fill="none"
+                                    stroke="rgba(170, 204, 255, 0.8)"
+                                    strokeWidth="1.5"
+                                    strokeDasharray="280"
+                                    strokeDashoffset={280 - (progress * 2.8)}
+                                    strokeLinecap="round"
+                                    style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+                                />
+                            </svg>
+                        </div>
+                    </div>
+
+                    {/* Orbit ring */}
+                    <div className="progress-ring">
+                        <div className="progress-ring-orbit" />
                     </div>
                 </div>
-
-                {/* Progress ring */}
-                <div className="progress-ring" />
 
                 {/* Brand text */}
                 <motion.span

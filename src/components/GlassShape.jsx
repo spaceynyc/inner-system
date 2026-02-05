@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react'
+import React, { useRef, useState, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { MeshTransmissionMaterial } from '@react-three/drei'
 import { easing } from 'maath'
@@ -6,39 +6,99 @@ import * as THREE from 'three'
 
 // Reduced detail level for better performance
 const DETAIL = 3
+const NORMALS_RECALC_EVERY_N_FRAMES = 4
 
-// Shape configurations - all with same detail level for consistent vertex count
+// Shape configurations used to project the shared base topology.
 const SHAPES = [
-    { name: 'icosahedron', create: () => new THREE.IcosahedronGeometry(1, DETAIL) },
-    { name: 'dodecahedron', create: () => new THREE.DodecahedronGeometry(1, DETAIL) },
-    { name: 'octahedron', create: () => new THREE.OctahedronGeometry(1, DETAIL) },
+    { name: 'icosahedron', create: () => new THREE.IcosahedronGeometry(1, 0) },
+    { name: 'dodecahedron', create: () => new THREE.DodecahedronGeometry(1, 0) },
+    { name: 'octahedron', create: () => new THREE.OctahedronGeometry(1, 0) },
 ]
 
-// Project vertices onto unit sphere and sort by angle for consistent ordering
-function createMorphTargets(geometry) {
-    const positions = geometry.attributes.position.array.slice()
+function getNormalizedDirections(positions) {
+    const directions = new Float32Array(positions.length)
     const vertexCount = positions.length / 3
+    const fallback = new THREE.Vector3(0, 1, 0)
 
-    // Normalize all vertices to unit sphere (they already should be, but ensure it)
+    // Build stable ray directions from the shared base geometry vertices.
     for (let i = 0; i < vertexCount; i++) {
         const idx = i * 3
         const x = positions[idx]
         const y = positions[idx + 1]
         const z = positions[idx + 2]
         const len = Math.sqrt(x * x + y * y + z * z)
+
         if (len > 0) {
-            positions[idx] = x / len
-            positions[idx + 1] = y / len
-            positions[idx + 2] = z / len
+            directions[idx] = x / len
+            directions[idx + 1] = y / len
+            directions[idx + 2] = z / len
+        } else {
+            directions[idx] = fallback.x
+            directions[idx + 1] = fallback.y
+            directions[idx + 2] = fallback.z
         }
     }
 
-    return new Float32Array(positions)
+    return directions
+}
+
+function projectDirectionsToGeometry(directions, geometry) {
+    const origin = new THREE.Vector3(0, 0, 0)
+    const direction = new THREE.Vector3()
+    const raycaster = new THREE.Raycaster()
+    const material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.updateMatrixWorld(true)
+
+    const projected = new Float32Array(directions.length)
+    const vertexCount = directions.length / 3
+
+    for (let i = 0; i < vertexCount; i++) {
+        const idx = i * 3
+        direction.set(directions[idx], directions[idx + 1], directions[idx + 2]).normalize()
+        raycaster.set(origin, direction)
+
+        const hit = raycaster.intersectObject(mesh, false)[0]
+        if (hit) {
+            projected[idx] = hit.point.x
+            projected[idx + 1] = hit.point.y
+            projected[idx + 2] = hit.point.z
+        } else {
+            // Fallback keeps animation stable even if a ray misses a face edge.
+            projected[idx] = direction.x
+            projected[idx + 1] = direction.y
+            projected[idx + 2] = direction.z
+        }
+    }
+
+    // Normalize average radius to keep transitions between shape targets smooth.
+    let radiusSum = 0
+    for (let i = 0; i < vertexCount; i++) {
+        const idx = i * 3
+        const x = projected[idx]
+        const y = projected[idx + 1]
+        const z = projected[idx + 2]
+        radiusSum += Math.sqrt(x * x + y * y + z * z)
+    }
+
+    const averageRadius = radiusSum / vertexCount || 1
+    const radiusScale = 1 / averageRadius
+
+    for (let i = 0; i < vertexCount; i++) {
+        const idx = i * 3
+        projected[idx] *= radiusScale
+        projected[idx + 1] *= radiusScale
+        projected[idx + 2] *= radiusScale
+    }
+
+    material.dispose()
+    return projected
 }
 
 export default function GlassShape({ playState, frequencyData, scrollData }) {
     const mesh = useRef()
     const [hovered, setHover] = useState(false)
+    const normalFrameCounter = useRef(0)
 
     // Use refs for morph state to avoid stale closures in useFrame
     const morphState = useRef({
@@ -61,21 +121,22 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         resolution: 256
     })
 
-    // Create all geometries with matching vertex counts
+    // Build morph targets by projecting one shared topology onto each target shape.
     const { morphTargets, baseGeometry, vertexCount } = useMemo(() => {
-        const geos = SHAPES.map(s => s.create())
+        const baseSource = new THREE.IcosahedronGeometry(1, DETAIL)
+        const baseDirections = getNormalizedDirections(baseSource.attributes.position.array)
 
-        // With same DETAIL level, all should have same vertex count
-        // But different base shapes may still differ slightly, so we use the first one's structure
-        const targets = geos.map(g => createMorphTargets(g))
+        const targets = SHAPES.map(shape => {
+            const geometry = shape.create()
+            const projected = projectDirectionsToGeometry(baseDirections, geometry)
+            geometry.dispose()
+            return projected
+        })
 
-        // Clone first geometry as the base (this is what we'll animate)
-        const base = new THREE.BufferGeometry()
+        const base = baseSource.clone()
         base.setAttribute('position', new THREE.BufferAttribute(targets[0].slice(), 3))
         base.computeVertexNormals()
-
-        // Dispose original geometries
-        geos.forEach(g => g.dispose())
+        baseSource.dispose()
 
         return {
             morphTargets: targets,
@@ -83,6 +144,12 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             vertexCount: targets[0].length / 3
         }
     }, [])
+
+    useEffect(() => {
+        return () => {
+            baseGeometry.dispose()
+        }
+    }, [baseGeometry])
 
     // Handle click to cycle through shapes
     const handleClick = () => {
@@ -99,6 +166,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         if (!mesh.current) return
 
         const ms = morphState.current
+        const geometry = mesh.current.geometry
+        let finishedMorphThisFrame = false
 
         // Get current frequency data
         const freq = frequencyData?.current || { bass: 0, lowMid: 0, mid: 0, high: 0, average: 0 }
@@ -114,7 +183,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const mid = audioState.current.mid
         const high = audioState.current.high
 
-        const currentPositions = mesh.current.geometry.attributes.position.array
+        const currentPositions = geometry.attributes.position.array
 
         // Handle morphing animation
         if (ms.isMorphing) {
@@ -123,6 +192,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             if (ms.progress >= 1) {
                 ms.progress = 1
                 ms.isMorphing = false
+                finishedMorphThisFrame = true
             }
 
             // Smooth easing function (ease in-out cubic)
@@ -143,8 +213,6 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 }
             }
 
-            mesh.current.geometry.attributes.position.needsUpdate = true
-            mesh.current.geometry.computeVertexNormals()
         } else {
             // When not morphing, apply audio-reactive displacement to current shape
             const targetPositions = morphTargets[ms.currentIndex]
@@ -165,8 +233,16 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 currentPositions[idx + 2] = z + z * wave
             }
 
-            mesh.current.geometry.attributes.position.needsUpdate = true
-            mesh.current.geometry.computeVertexNormals()
+        }
+
+        geometry.attributes.position.needsUpdate = true
+        normalFrameCounter.current += 1
+        const normalsInterval = ms.isMorphing ? 2 : NORMALS_RECALC_EVERY_N_FRAMES
+        if (finishedMorphThisFrame || normalFrameCounter.current % normalsInterval === 0) {
+            geometry.computeVertexNormals()
+            if (geometry.attributes.normal) {
+                geometry.attributes.normal.needsUpdate = true
+            }
         }
 
         // Audio-reactive rotation - faster with more energy
@@ -175,19 +251,34 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         mesh.current.rotation.x += delta * audioSpeed
         mesh.current.rotation.y += delta * audioSpeed * 1.1
 
+        const scrollOffset = scrollData?.current?.offset || 0
+
+        // Shift the shape away from the active card side across sections.
+        let targetX = 0
+        if (scrollOffset <= 0.25) {
+            targetX = THREE.MathUtils.lerp(0, 0.55, scrollOffset / 0.25)
+        } else if (scrollOffset <= 0.5) {
+            targetX = THREE.MathUtils.lerp(0.55, -1, (scrollOffset - 0.25) / 0.25)
+        } else if (scrollOffset <= 0.75) {
+            targetX = THREE.MathUtils.lerp(-1, -0.2, (scrollOffset - 0.5) / 0.25)
+        } else {
+            targetX = THREE.MathUtils.lerp(-0.2, 0, (scrollOffset - 0.75) / 0.25)
+        }
+        easing.damp(mesh.current.position, 'x', targetX, 0.2, delta)
+
         // Gentle floating animation with audio influence
         const floatAmount = 0.2 + bass * 0.3 // Bass makes it bob more
         mesh.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * floatAmount
 
         // Audio-reactive scale - pulse on bass hits
-        const morphPulse = ms.isMorphing ? Math.sin(ms.progress * Math.PI) * 0.15 : 0
-        const bassPulse = bass * 0.4 // Scale pulse based on bass
+        const morphPulse = ms.isMorphing ? Math.sin(ms.progress * Math.PI) * 0.08 : 0
+        const bassPulse = bass * 0.18 // Scale pulse based on bass
 
         // Scroll-driven scale changes (grow as user scrolls closer)
-        const scrollOffset = scrollData?.current?.offset || 0
-        const scrollScale = 1 + scrollOffset * 0.3 // Subtle growth with scroll
+        const scrollScale = 1 + scrollOffset * 0.08 // Keep growth subtle to protect text readability
 
-        const targetScale = ((playState ? 2.2 : 2) + morphPulse + bassPulse) * scrollScale
+        const baseScale = playState ? 1.45 : 1.35
+        const targetScale = (baseScale + morphPulse + bassPulse) * scrollScale
         easing.damp3(mesh.current.scale, [targetScale, targetScale, targetScale], 0.15, delta)
 
         // Scroll-driven rotation bias (add extra rotation based on scroll)

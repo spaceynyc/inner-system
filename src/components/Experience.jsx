@@ -8,6 +8,9 @@ import DreamBackground from './DreamBackground'
 import FloatingParticles from './FloatingParticles'
 import FloatingText from './FloatingText'
 import { useLoading } from './LoadingManager'
+import ScrollContent from './ScrollContent'
+import { scrollState } from '../scrollState'
+import { audioState } from '../audioState'
 
 // Scroll section configuration
 const SCROLL_SECTIONS = [
@@ -27,7 +30,7 @@ const SCROLL_SECTIONS = [
     },
     {
         name: 'discover',
-        cameraZ: 3,
+        cameraZ: 4.8,
         cameraY: 0,
         bgColor: new THREE.Color('#150a30'),
         fogColor: new THREE.Color('#150a30')
@@ -51,7 +54,14 @@ const AudioAnalyser = {
     isConnected: false,
 
     connect(audioElement) {
-        if (this.isConnected || !audioElement) return false
+        if (!audioElement) return false
+
+        if (this.isConnected) {
+            if (this.audioElement === audioElement) {
+                return true
+            }
+            this.disconnect()
+        }
 
         try {
             this.audioElement = audioElement
@@ -100,6 +110,26 @@ const AudioAnalyser = {
         if (this.context?.state === 'suspended') {
             await this.context.resume()
         }
+    },
+
+    disconnect() {
+        try {
+            this.source?.disconnect()
+            this.analyser?.disconnect()
+        } catch (error) {
+            console.warn('AudioAnalyser disconnect warning:', error)
+        }
+
+        if (this.context && this.context.state !== 'closed') {
+            this.context.close().catch(() => {})
+        }
+
+        this.context = null
+        this.analyser = null
+        this.dataArray = null
+        this.source = null
+        this.audioElement = null
+        this.isConnected = false
     }
 }
 
@@ -122,6 +152,15 @@ function getScrollInterpolation(scrollOffset) {
         sectionIndex: currentSection,
         sectionProgress: t
     }
+}
+
+// Bridge R3F scroll state to shared mutable ref for DOM components
+function ScrollBridge() {
+    const scroll = useScroll()
+    useFrame(() => {
+        scrollState.offset = scroll.offset
+    })
+    return null
 }
 
 export default function Experience({ playState }) {
@@ -183,11 +222,25 @@ export default function Experience({ playState }) {
 
         if (playState) {
             AudioAnalyser.resume()
-            audioElement.play().catch(e => console.warn('Audio play failed:', e))
+                .then(() => audioElement.play())
+                .catch(error => console.warn('Audio play failed:', error))
         } else {
             audioElement.pause()
         }
     }, [playState, audioElement])
+
+    // Release audio resources when this scene unmounts or audio element changes.
+    useEffect(() => {
+        return () => {
+            if (audioElement) {
+                audioElement.pause()
+                audioElement.currentTime = 0
+            }
+            if (AudioAnalyser.audioElement === audioElement) {
+                AudioAnalyser.disconnect()
+            }
+        }
+    }, [audioElement])
 
     // Update frequency data and scroll-driven animations every frame
     useFrame((state, delta) => {
@@ -204,6 +257,14 @@ export default function Experience({ playState }) {
                 average: frequencyDataRef.current.average * decay
             }
         }
+
+        // Write audio data to shared state for Effects component
+        audioState.bass = frequencyDataRef.current.bass
+        audioState.lowMid = frequencyDataRef.current.lowMid
+        audioState.mid = frequencyDataRef.current.mid
+        audioState.high = frequencyDataRef.current.high
+        audioState.average = frequencyDataRef.current.average
+        audioState.isPlaying = playState
 
         // Update scroll data
         scrollDataRef.current.offset = scroll.offset
@@ -258,6 +319,9 @@ export default function Experience({ playState }) {
             <Environment preset="city" />
             <ambientLight intensity={0.5} />
             <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
+
+            <ScrollBridge />
+            <ScrollContent />
         </>
     )
 }
@@ -285,8 +349,8 @@ function ScrollSections({ scrollData }) {
             const sectionEnd = (i + 1) / 4
             const inSection = offset >= sectionStart && offset < sectionEnd
 
-            // Fade in/out based on section visibility
-            const targetOpacity = inSection ? 1 : 0
+            // Fade in/out based on section visibility (subtle watermark behind HTML content)
+            const targetOpacity = inSection ? 0.3 : 0
             section.material.opacity += (targetOpacity - section.material.opacity) * delta * 3
 
             // Subtle floating animation when visible
@@ -304,9 +368,9 @@ function ScrollSections({ scrollData }) {
                         key={i}
                         ref={el => sectionsRef.current[i] = el}
                         font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
-                        fontSize={0.5}
+                        fontSize={0.35}
                         color="#ffffff"
-                        position={[0, content.y, -2]}
+                        position={[0, content.y, -4]}
                         anchorX="center"
                         anchorY="middle"
                         letterSpacing={0.3}

@@ -7,6 +7,7 @@ import Overlay from './components/Overlay'
 import { LoadingProvider, useLoading } from './components/LoadingManager'
 import Preloader from './components/Preloader'
 import AssetTracker from './components/AssetTracker'
+import Effects from './components/Effects'
 
 function AppContent() {
     const [playState, setPlayState] = React.useState(false)
@@ -28,6 +29,7 @@ function AppContent() {
                     <ScrollControls pages={4} damping={0.25}>
                         <Experience playState={playState} />
                     </ScrollControls>
+                    <Effects />
                 </Suspense>
             </Canvas>
             <Overlay playState={playState} setPlayState={setPlayState} />

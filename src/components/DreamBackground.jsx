@@ -1,5 +1,4 @@
 import React from 'react'
-import { Color } from 'three'
 
 export default function DreamBackground() {
     return (
