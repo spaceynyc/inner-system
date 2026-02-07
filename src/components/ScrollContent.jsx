@@ -103,7 +103,7 @@ export default function ScrollContent() {
                             refracts the sound differently. Click the shape to shift between states.
                         </p>
                         <span className="section-cta">
-                            Click the shape to transform it
+                            Click the shape or press M to transform it
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
