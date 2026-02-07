@@ -1,33 +1,13 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
 import { Scroll } from '@react-three/drei'
 import { scrollState } from '../scrollState'
 
 const TOTAL_SECTIONS = 4
 
-function AnimatedSection({ index, children, className, style }) {
-    const ref = useRef()
-
-    useEffect(() => {
-        let rafId
-        function animate() {
-            if (ref.current) {
-                const center = (index + 0.5) / TOTAL_SECTIONS
-                const dist = Math.abs(scrollState.offset - center)
-                const opacity = Math.max(0, 1 - dist * 3.5)
-                const ty = (1 - opacity) * 40
-
-                ref.current.style.opacity = opacity
-                ref.current.style.transform = `translateY(${ty}px)`
-            }
-            rafId = requestAnimationFrame(animate)
-        }
-        animate()
-        return () => cancelAnimationFrame(rafId)
-    }, [index])
-
+function AnimatedSection({ index, children, className, style, registerSection }) {
     return (
         <section
-            ref={ref}
+            ref={(node) => registerSection(index, node)}
             className={`content-section ${className || ''}`}
             style={{ top: `${index * 100}vh`, ...style }}
         >
@@ -37,11 +17,51 @@ function AnimatedSection({ index, children, className, style }) {
 }
 
 export default function ScrollContent() {
+    const sectionRefs = useRef([])
+    const lastStyles = useRef([])
+
+    const registerSection = useCallback((index, node) => {
+        sectionRefs.current[index] = node
+    }, [])
+
+    useEffect(() => {
+        let rafId
+
+        const animate = () => {
+            const offset = scrollState.offset
+
+            for (let index = 0; index < TOTAL_SECTIONS; index++) {
+                const section = sectionRefs.current[index]
+                if (!section) continue
+
+                const center = (index + 0.5) / TOTAL_SECTIONS
+                const dist = Math.abs(offset - center)
+                const opacity = Math.max(0, 1 - dist * 3.5)
+                const ty = (1 - opacity) * 40
+
+                const last = lastStyles.current[index]
+                if (!last || Math.abs(last.opacity - opacity) > 0.001 || Math.abs(last.ty - ty) > 0.1) {
+                    section.style.opacity = String(opacity)
+                    section.style.transform = `translateY(${ty}px)`
+                    lastStyles.current[index] = { opacity, ty }
+                }
+            }
+
+            rafId = requestAnimationFrame(animate)
+        }
+
+        animate()
+
+        return () => {
+            cancelAnimationFrame(rafId)
+        }
+    }, [])
+
     return (
         <Scroll html>
             <div className="scroll-content">
                 {/* Section 0: Intro */}
-                <AnimatedSection index={0} className="section-intro">
+                <AnimatedSection index={0} className="section-intro" registerSection={registerSection}>
                     <div className="content-card">
                         <p className="section-description intro-tagline">
                             Sound becomes form. Light becomes feeling.
@@ -56,7 +76,7 @@ export default function ScrollContent() {
                 </AnimatedSection>
 
                 {/* Section 1: Explore */}
-                <AnimatedSection index={1} className="section-explore">
+                <AnimatedSection index={1} className="section-explore" registerSection={registerSection}>
                     <div className="content-card">
                         <span className="section-label">01 / EXPLORE</span>
                         <h2 className="section-heading">Listen with your eyes</h2>
@@ -74,7 +94,7 @@ export default function ScrollContent() {
                 </AnimatedSection>
 
                 {/* Section 2: Discover */}
-                <AnimatedSection index={2} className="section-discover">
+                <AnimatedSection index={2} className="section-discover" registerSection={registerSection}>
                     <div className="content-card">
                         <span className="section-label">02 / DISCOVER</span>
                         <h2 className="section-heading">Three forms. One system.</h2>
@@ -92,7 +112,7 @@ export default function ScrollContent() {
                 </AnimatedSection>
 
                 {/* Section 3: Transcend */}
-                <AnimatedSection index={3} className="section-transcend">
+                <AnimatedSection index={3} className="section-transcend" registerSection={registerSection}>
                     <div className="content-card">
                         <span className="section-label">03 / TRANSCEND</span>
                         <h2 className="section-heading">Beyond the surface</h2>

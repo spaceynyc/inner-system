@@ -1,6 +1,6 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { MeshTransmissionMaterial } from '@react-three/drei'
+import { MeshTransmissionMaterial, useDetectGPU } from '@react-three/drei'
 import { easing } from 'maath'
 import * as THREE from 'three'
 
@@ -99,6 +99,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
     const mesh = useRef()
     const [hovered, setHover] = useState(false)
     const normalFrameCounter = useRef(0)
+    const gpu = useDetectGPU()
+    const useSimpleMaterial = (gpu?.tier ?? 3) <= 1
 
     // Use refs for morph state to avoid stale closures in useFrame
     const morphState = useRef({
@@ -122,16 +124,14 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
     })
 
     // Build morph targets by projecting one shared topology onto each target shape.
-    const { morphTargets, baseGeometry, vertexCount } = useMemo(() => {
+    const { morphTargets, baseGeometry, vertexCount, morphTargetGeometries } = useMemo(() => {
         const baseSource = new THREE.IcosahedronGeometry(1, DETAIL)
         const baseDirections = getNormalizedDirections(baseSource.attributes.position.array)
 
-        const targets = SHAPES.map(shape => {
-            const geometry = shape.create()
-            const projected = projectDirectionsToGeometry(baseDirections, geometry)
-            geometry.dispose()
-            return projected
-        })
+        const targetGeometries = SHAPES.map(shape => shape.create())
+        const targets = targetGeometries.map(geometry =>
+            projectDirectionsToGeometry(baseDirections, geometry)
+        )
 
         const base = baseSource.clone()
         base.setAttribute('position', new THREE.BufferAttribute(targets[0].slice(), 3))
@@ -141,15 +141,17 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         return {
             morphTargets: targets,
             baseGeometry: base,
-            vertexCount: targets[0].length / 3
+            vertexCount: targets[0].length / 3,
+            morphTargetGeometries: targetGeometries
         }
     }, [])
 
     useEffect(() => {
         return () => {
             baseGeometry.dispose()
+            morphTargetGeometries.forEach(geometry => geometry.dispose())
         }
-    }, [baseGeometry])
+    }, [baseGeometry, morphTargetGeometries])
 
     // Handle click to cycle through shapes
     const handleClick = () => {
@@ -291,20 +293,6 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const audioRoughness = Math.max(0.05, baseRoughness - high * 0.4)
         easing.damp(mesh.current.material, 'roughness', audioRoughness, 0.2, delta)
 
-        // Chromatic aberration increases with bass (color separation on beats)
-        const baseChromaticAberration = hovered ? 0.5 : 0.1
-        const audioChromaticAberration = baseChromaticAberration + bass * 1.5 // Strong effect on bass
-        easing.damp(mesh.current.material, 'chromaticAberration', audioChromaticAberration, 0.1, delta)
-
-        // Distortion increases with mid frequencies
-        const baseDistortion = 0.5
-        const audioDistortion = baseDistortion + mid * 0.8
-        easing.damp(mesh.current.material, 'distortion', audioDistortion, 0.15, delta)
-
-        // Temporal distortion for extra movement feel
-        const audioTemporalDistortion = 0.2 + bass * 0.5
-        easing.damp(mesh.current.material, 'temporalDistortion', audioTemporalDistortion, 0.2, delta)
-
         // Color shifts based on frequency content
         // More bass = warmer (pink/purple), more high = cooler (cyan/blue)
         const hue = 0.6 - bass * 0.15 + high * 0.1 // Shift hue based on frequencies
@@ -319,18 +307,34 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const audioIOR = baseIOR + freq.average * 0.3
         easing.damp(mesh.current.material, 'ior', audioIOR, 0.3, delta)
 
-        // Dynamic quality adjustment based on camera distance (scroll position)
-        // When zoomed in (closer camera), reduce quality to maintain framerate
-        const targetSamples = scrollOffset > 0.3 ? 4 : 8
-        const targetResolution = scrollOffset > 0.3 ? 128 : 256
+        if (!useSimpleMaterial) {
+            // Chromatic aberration increases with bass (color separation on beats)
+            const baseChromaticAberration = hovered ? 0.5 : 0.1
+            const audioChromaticAberration = baseChromaticAberration + bass * 1.5 // Strong effect on bass
+            easing.damp(mesh.current.material, 'chromaticAberration', audioChromaticAberration, 0.1, delta)
 
-        if (qualityState.current.samples !== targetSamples) {
-            qualityState.current.samples = targetSamples
-            mesh.current.material.samples = targetSamples
-        }
-        if (qualityState.current.resolution !== targetResolution) {
-            qualityState.current.resolution = targetResolution
-            mesh.current.material.resolution = targetResolution
+            // Distortion increases with mid frequencies
+            const baseDistortion = 0.5
+            const audioDistortion = baseDistortion + mid * 0.8
+            easing.damp(mesh.current.material, 'distortion', audioDistortion, 0.15, delta)
+
+            // Temporal distortion for extra movement feel
+            const audioTemporalDistortion = 0.2 + bass * 0.5
+            easing.damp(mesh.current.material, 'temporalDistortion', audioTemporalDistortion, 0.2, delta)
+
+            // Dynamic quality adjustment based on camera distance (scroll position)
+            // When zoomed in (closer camera), reduce quality to maintain framerate
+            const targetSamples = scrollOffset > 0.3 ? 4 : 8
+            const targetResolution = scrollOffset > 0.3 ? 128 : 256
+
+            if (qualityState.current.samples !== targetSamples) {
+                qualityState.current.samples = targetSamples
+                mesh.current.material.samples = targetSamples
+            }
+            if (qualityState.current.resolution !== targetResolution) {
+                qualityState.current.resolution = targetResolution
+                mesh.current.material.resolution = targetResolution
+            }
         }
     })
 
@@ -342,22 +346,32 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             onClick={handleClick}
         >
             <primitive object={baseGeometry} attach="geometry" />
-            <MeshTransmissionMaterial
-                backside
-                backsideThickness={3}
-                samples={8}
-                resolution={256}
-                thickness={1.5}
-                roughness={0.5}
-                transmission={1}
-                ior={1.5}
-                chromaticAberration={0.1}
-                anisotropy={0.3}
-                distortion={0.3}
-                distortionScale={0.3}
-                temporalDistortion={0.1}
-                color="#aaccff"
-            />
+            {useSimpleMaterial ? (
+                <meshPhysicalMaterial
+                    thickness={1.5}
+                    roughness={0.5}
+                    transmission={1}
+                    ior={1.5}
+                    color="#aaccff"
+                />
+            ) : (
+                <MeshTransmissionMaterial
+                    backside
+                    backsideThickness={3}
+                    samples={8}
+                    resolution={256}
+                    thickness={1.5}
+                    roughness={0.5}
+                    transmission={1}
+                    ior={1.5}
+                    chromaticAberration={0.1}
+                    anisotropy={0.3}
+                    distortion={0.3}
+                    distortionScale={0.3}
+                    temporalDistortion={0.1}
+                    color="#aaccff"
+                />
+            )}
         </mesh>
     )
 }
