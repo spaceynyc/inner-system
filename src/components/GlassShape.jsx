@@ -121,10 +121,11 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
     const _audioColor = useMemo(() => new THREE.Color(), [])
     const _hoverColor = useMemo(() => new THREE.Color('#ffffff'), [])
 
-    // Track material quality for dynamic LOD
+    // Track material quality for dynamic LOD (samples only — never change
+    // resolution at runtime because that forces an FBO reallocation which
+    // fragments GPU memory and eventually causes WebGL context loss).
     const qualityState = useRef({
-        samples: 8,
-        resolution: 256
+        samples: 4
     })
 
     // Build morph targets by projecting one shared topology onto each target shape.
@@ -341,18 +342,11 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             const audioTemporalDistortion = 0.2 + bass * 0.5
             easing.damp(mesh.current.material, 'temporalDistortion', audioTemporalDistortion, 0.2, delta)
 
-            // Dynamic quality adjustment based on camera distance (scroll position)
-            // When zoomed in (closer camera), reduce quality to maintain framerate
-            const targetSamples = scrollOffset > 0.3 ? 4 : 8
-            const targetResolution = scrollOffset > 0.3 ? 128 : 256
-
+            // Adjust sample count based on scroll (cheap — no FBO realloc)
+            const targetSamples = scrollOffset > 0.3 ? 2 : 4
             if (qualityState.current.samples !== targetSamples) {
                 qualityState.current.samples = targetSamples
                 mesh.current.material.samples = targetSamples
-            }
-            if (qualityState.current.resolution !== targetResolution) {
-                qualityState.current.resolution = targetResolution
-                mesh.current.material.resolution = targetResolution
             }
         }
     })
@@ -377,8 +371,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 <MeshTransmissionMaterial
                     backside
                     backsideThickness={3}
-                    samples={8}
-                    resolution={256}
+                    samples={4}
+                    resolution={128}
                     thickness={1.5}
                     roughness={0.5}
                     transmission={1}

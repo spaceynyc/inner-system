@@ -4,7 +4,6 @@ import {
     EffectComposer,
     Bloom,
     ChromaticAberration,
-    DepthOfField,
     Noise,
     Vignette
 } from '@react-three/postprocessing'
@@ -17,7 +16,6 @@ import { scrollState } from '../scrollState'
 export default function Effects() {
     const bloomRef = useRef()
     const caRef = useRef()
-    const dofRef = useRef()
     const noiseRef = useRef()
     const vignetteRef = useRef()
 
@@ -30,14 +28,12 @@ export default function Effects() {
     // Smoothed audio values to prevent jitter on effect parameters
     const smoothed = useRef({
         caBass: 0,
-        dofMid: 0,
-        dofBass: 0,
         noiseHigh: 0,
         vigBass: 0
     })
 
     useFrame((_, delta) => {
-        const { bass, mid, high, average, isPlaying } = audioState
+        const { bass, high, average, isPlaying } = audioState
         const scroll = scrollState.offset
 
         // --- Bloom (existing logic) ---
@@ -54,12 +50,9 @@ export default function Effects() {
         // --- Smooth audio values ---
         const s = smoothed.current
         const audioBass = isPlaying ? bass : 0
-        const audioMid = isPlaying ? mid : 0
         const audioHigh = isPlaying ? high : 0
 
         s.caBass += (audioBass - s.caBass) * Math.min(delta * 8, 1)
-        s.dofMid += (audioMid - s.dofMid) * Math.min(delta * 6, 1)
-        s.dofBass += (audioBass - s.dofBass) * Math.min(delta * 8, 1)
         s.noiseHigh += (audioHigh - s.noiseHigh) * Math.min(delta * 10, 1)
         s.vigBass += (audioBass - s.vigBass) * Math.min(delta * 6, 1)
 
@@ -68,17 +61,6 @@ export default function Effects() {
             const scrollMult = 1.0 + scroll * 0.5
             const caAmount = (0.0005 + s.caBass * 0.0035) * scrollMult
             caRef.current.offset.set(caAmount, caAmount)
-        }
-
-        // --- Depth of Field: mid → focusRange, bass → bokehScale, scroll → focusDistance ---
-        if (dofRef.current) {
-            const baseFocusDist = 0.01 - scroll * 0.005
-            dofRef.current.focusDistance = Math.max(0.003, baseFocusDist)
-
-            dofRef.current.focusRange = 0.02 + s.dofMid * 0.04
-
-            const baseBokeh = 2.0 + scroll * 1.5
-            dofRef.current.bokehScale = baseBokeh + s.dofBass * 2.0
         }
 
         // --- Noise (Film Grain): high → opacity, scroll amplifies ---
@@ -115,16 +97,6 @@ export default function Effects() {
                     offset={caOffset}
                     radialModulation
                     modulationOffset={0.3}
-                />
-            )}
-
-            {gpuTier >= 3 && (
-                <DepthOfField
-                    ref={dofRef}
-                    focusDistance={0.01}
-                    focusRange={0.02}
-                    bokehScale={2.0}
-                    resolutionScale={0.5}
                 />
             )}
 
