@@ -133,6 +133,10 @@ const AudioAnalyser = {
     }
 }
 
+// Reusable Color objects for scroll interpolation (avoids per-frame allocations)
+const _scrollBgColor = new THREE.Color()
+const _scrollFogColor = new THREE.Color()
+
 // Interpolate between scroll sections
 function getScrollInterpolation(scrollOffset) {
     const sectionCount = SCROLL_SECTIONS.length
@@ -147,8 +151,8 @@ function getScrollInterpolation(scrollOffset) {
     return {
         cameraZ: THREE.MathUtils.lerp(from.cameraZ, to.cameraZ, t),
         cameraY: THREE.MathUtils.lerp(from.cameraY, to.cameraY, t),
-        bgColor: from.bgColor.clone().lerp(to.bgColor, t),
-        fogColor: from.fogColor.clone().lerp(to.fogColor, t),
+        bgColor: _scrollBgColor.copy(from.bgColor).lerp(to.bgColor, t),
+        fogColor: _scrollFogColor.copy(from.fogColor).lerp(to.fogColor, t),
         sectionIndex: currentSection,
         sectionProgress: t
     }

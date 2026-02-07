@@ -117,10 +117,15 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         high: 0
     })
 
-    // Track material quality for dynamic LOD
+    // Reusable Color objects to avoid per-frame allocations
+    const _audioColor = useMemo(() => new THREE.Color(), [])
+    const _hoverColor = useMemo(() => new THREE.Color('#ffffff'), [])
+
+    // Track material quality for dynamic LOD (samples only — never change
+    // resolution at runtime because that forces an FBO reallocation which
+    // fragments GPU memory and eventually causes WebGL context loss).
     const qualityState = useRef({
-        samples: 8,
-        resolution: 256
+        samples: 4
     })
 
     // Build morph targets by projecting one shared topology onto each target shape.
@@ -153,8 +158,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         }
     }, [baseGeometry, morphTargetGeometries])
 
-    // Handle click to cycle through shapes
-    const handleClick = () => {
+    // Handle click or keyboard to cycle through shapes
+    const handleMorph = () => {
         const ms = morphState.current
         if (!ms.isMorphing) {
             ms.previousIndex = ms.currentIndex
@@ -163,6 +168,17 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             ms.progress = 0
         }
     }
+
+    // Allow keyboard users to morph the shape with 'M' key
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'm' || e.key === 'M') {
+                handleMorph()
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [])
 
     useFrame((state, delta) => {
         if (!mesh.current) return
@@ -302,8 +318,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const hue = 0.6 - bass * 0.15 + high * 0.1 // Shift hue based on frequencies
         const saturation = 0.3 + mid * 0.4
         const lightness = 0.7 + high * 0.2
-        const audioColor = new THREE.Color().setHSL(hue, saturation, lightness)
-        const baseColor = hovered ? new THREE.Color('#ffffff') : audioColor
+        _audioColor.setHSL(hue, saturation, lightness)
+        const baseColor = hovered ? _hoverColor : _audioColor
         easing.dampC(mesh.current.material.color, baseColor, 0.25, delta)
 
         // IOR (index of refraction) subtle changes with average volume
@@ -326,18 +342,11 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             const audioTemporalDistortion = 0.2 + bass * 0.5
             easing.damp(mesh.current.material, 'temporalDistortion', audioTemporalDistortion, 0.2, delta)
 
-            // Dynamic quality adjustment based on camera distance (scroll position)
-            // When zoomed in (closer camera), reduce quality to maintain framerate
-            const targetSamples = scrollOffset > 0.3 ? 4 : 8
-            const targetResolution = scrollOffset > 0.3 ? 128 : 256
-
+            // Adjust sample count based on scroll (cheap — no FBO realloc)
+            const targetSamples = scrollOffset > 0.3 ? 2 : 4
             if (qualityState.current.samples !== targetSamples) {
                 qualityState.current.samples = targetSamples
                 mesh.current.material.samples = targetSamples
-            }
-            if (qualityState.current.resolution !== targetResolution) {
-                qualityState.current.resolution = targetResolution
-                mesh.current.material.resolution = targetResolution
             }
         }
     })
@@ -345,9 +354,9 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
     return (
         <mesh
             ref={mesh}
-            onPointerOver={() => setHover(true)}
-            onPointerOut={() => setHover(false)}
-            onClick={handleClick}
+            onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer' }}
+            onPointerOut={() => { setHover(false); document.body.style.cursor = 'auto' }}
+            onClick={handleMorph}
         >
             <primitive object={baseGeometry} attach="geometry" />
             {useSimpleMaterial ? (
@@ -362,8 +371,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 <MeshTransmissionMaterial
                     backside
                     backsideThickness={3}
-                    samples={8}
-                    resolution={256}
+                    samples={4}
+                    resolution={128}
                     thickness={1.5}
                     roughness={0.5}
                     transmission={1}
