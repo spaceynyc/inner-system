@@ -262,9 +262,10 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         } else if (scrollOffset <= 0.5) {
             targetX = THREE.MathUtils.lerp(0.55, -1, (scrollOffset - 0.25) / 0.25)
         } else if (scrollOffset <= 0.75) {
-            targetX = THREE.MathUtils.lerp(-1, -0.2, (scrollOffset - 0.5) / 0.25)
+            targetX = THREE.MathUtils.lerp(-1, -0.35, (scrollOffset - 0.5) / 0.25)
         } else {
-            targetX = THREE.MathUtils.lerp(-0.2, 0, (scrollOffset - 0.75) / 0.25)
+            // Keep the final section visually clear for copy by pushing the shape farther left.
+            targetX = THREE.MathUtils.lerp(-0.35, -1.15, (scrollOffset - 0.75) / 0.25)
         }
         easing.damp(mesh.current.position, 'x', targetX, 0.2, delta)
 
@@ -280,7 +281,10 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const scrollScale = 1 + scrollOffset * 0.08 // Keep growth subtle to protect text readability
 
         const baseScale = playState ? 1.45 : 1.35
-        const targetScale = (baseScale + morphPulse + bassPulse) * scrollScale
+        // Ease the object down in the final section so it doesn't crowd the content card.
+        const finalSectionT = THREE.MathUtils.smoothstep(scrollOffset, 0.75, 1)
+        const finalSectionScaleBias = THREE.MathUtils.lerp(1, 0.88, finalSectionT)
+        const targetScale = (baseScale + morphPulse + bassPulse) * scrollScale * finalSectionScaleBias
         easing.damp3(mesh.current.scale, [targetScale, targetScale, targetScale], 0.15, delta)
 
         // Scroll-driven rotation bias (add extra rotation based on scroll)

@@ -262,8 +262,42 @@ canvas {
 
 /* Transcend section: centered */
 .section-transcend {
-  align-items: center;
-  text-align: center;
+  justify-content: flex-end;
+  align-items: flex-end;
+  text-align: left;
+  padding-bottom: clamp(64px, 11vh, 132px);
+}
+
+.section-transcend .content-card {
+  max-width: min(520px, 39vw);
+  margin-right: 0;
+  background: linear-gradient(158deg, rgba(5, 12, 31, 0.97), rgba(7, 18, 45, 0.95));
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  border: 1px solid rgba(216, 230, 255, 0.26);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.5);
+}
+
+.section-transcend .section-label {
+  color: rgba(228, 237, 255, 0.58);
+}
+
+.section-transcend .section-heading {
+  color: rgba(246, 249, 255, 0.95);
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+
+.section-transcend .section-description {
+  color: rgba(225, 233, 250, 0.82);
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+}
+
+.section-transcend .section-cta-final {
+  color: rgba(219, 230, 255, 0.7);
+}
+
+.section-transcend .section-cta-final:hover {
+  color: rgba(236, 243, 255, 0.88);
 }
 
 /* Responsive */
@@ -287,6 +321,18 @@ canvas {
 
   .section-discover .section-cta {
     flex-direction: row;
+  }
+
+  .section-transcend {
+    align-items: center;
+    text-align: left;
+    justify-content: flex-end;
+    padding-bottom: 12vh;
+  }
+
+  .section-transcend .content-card {
+    max-width: 100%;
+    margin-right: 0;
   }
 }
 
