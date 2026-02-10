@@ -120,8 +120,11 @@ export default function ScrollContent() {
                             Transmission. Refraction. Chromatic aberration.
                             The glass responds to every beat, every frequency, every touch.
                         </p>
+                        <p className="section-description section-description-fade">
+                            You've seen the system. Now feel it.
+                        </p>
                         <span className="section-cta section-cta-final">
-                            Scroll back up to begin again
+                            ↑ Return to the beginning
                         </span>
                     </div>
                 </AnimatedSection>

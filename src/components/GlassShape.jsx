@@ -234,6 +234,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         } else {
             // When not morphing, apply audio-reactive displacement to current shape
             const targetPositions = morphTargets[ms.currentIndex]
+            const time = state.clock.elapsedTime
 
             for (let i = 0; i < vertexCount; i++) {
                 const idx = i * 3
@@ -241,14 +242,19 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 const y = targetPositions[idx + 1]
                 const z = targetPositions[idx + 2]
 
-                // Create wave distortion based on bass (subtle when no audio)
+                // Idle breathing animation — always active so the shape feels alive
+                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.012
+                    + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.008
+
+                // Audio-reactive wave on top of idle breathing
                 const wave = bass > 0.01
-                    ? Math.sin(state.clock.elapsedTime * 8 + x * 5 + y * 3) * bass * 0.08
+                    ? Math.sin(time * 8 + x * 5 + y * 3) * bass * 0.08
                     : 0
 
-                currentPositions[idx] = x + x * wave
-                currentPositions[idx + 1] = y + y * wave
-                currentPositions[idx + 2] = z + z * wave
+                const totalDisplacement = breath + wave
+                currentPositions[idx] = x + x * totalDisplacement
+                currentPositions[idx + 1] = y + y * totalDisplacement
+                currentPositions[idx + 2] = z + z * totalDisplacement
             }
 
         }

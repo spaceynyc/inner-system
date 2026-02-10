@@ -36,15 +36,19 @@ export default function Effects() {
         const { bass, high, average, isPlaying } = audioState
         const scroll = scrollState.offset
 
-        // --- Bloom (existing logic) ---
+        // --- Bloom: audio-reactive + final section crescendo ---
         if (bloomRef.current) {
-            const baseIntensity = 0.8
+            // Ramp bloom intensity in the final section for a visual payoff
+            const finalT = Math.max(0, (scroll - 0.75) / 0.25) // 0→1 over last 25%
+            const finalBoost = finalT * finalT * 0.6 // quadratic ease-in
+
+            const baseIntensity = 0.8 + finalBoost
             const audioBoost = isPlaying ? bass * 1.0 : 0
             bloomRef.current.intensity = baseIntensity + audioBoost
 
-            const baseThreshold = 0.85
+            const baseThreshold = 0.85 - finalBoost * 0.2
             const thresholdDrop = isPlaying ? average * 0.3 : 0
-            bloomRef.current.luminanceThreshold = baseThreshold - thresholdDrop
+            bloomRef.current.luminanceThreshold = Math.max(baseThreshold - thresholdDrop, 0.4)
         }
 
         // --- Smooth audio values ---
@@ -70,13 +74,13 @@ export default function Effects() {
             noiseRef.current.blendMode.opacity.value = grainOpacity
         }
 
-        // --- Vignette: bass → darkness, scroll tightens ---
+        // --- Vignette: bass → darkness, scroll tightens, stronger center pull ---
         if (vignetteRef.current) {
-            const baseDarkness = 0.7 + scroll * 0.3 + s.vigBass * 0.3
-            vignetteRef.current.darkness = Math.min(baseDarkness, 1.3)
+            const baseDarkness = 0.85 + scroll * 0.35 + s.vigBass * 0.3
+            vignetteRef.current.darkness = Math.min(baseDarkness, 1.4)
 
-            const baseVigOffset = 0.3 - scroll * 0.1
-            vignetteRef.current.offset = Math.max(baseVigOffset, 0.15)
+            const baseVigOffset = 0.25 - scroll * 0.1
+            vignetteRef.current.offset = Math.max(baseVigOffset, 0.12)
         }
     })
 
