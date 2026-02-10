@@ -182,6 +182,12 @@ canvas {
   margin: 0 0 24px 0;
 }
 
+.section-description-fade {
+  opacity: 0.5;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
 .section-cta {
   display: inline-flex;
   align-items: center;
