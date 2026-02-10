@@ -120,9 +120,21 @@ export default function ScrollContent() {
                             Transmission. Refraction. Chromatic aberration.
                             The glass responds to every beat, every frequency, every touch.
                         </p>
-                        <span className="section-cta section-cta-final">
-                            Scroll back up to begin again
-                        </span>
+                        <p className="section-description section-description-fade">
+                            You've seen the system. Now feel it.
+                        </p>
+                        <button
+                            className="section-cta section-cta-final scroll-to-top-btn"
+                            onClick={() => {
+                                // Use drei's scroll element exposed via scrollState
+                                const el = scrollState.el
+                                if (el) {
+                                    el.scrollTo({ top: 0, behavior: 'smooth' })
+                                }
+                            }}
+                        >
+                            ↑ Return to the beginning
+                        </button>
                     </div>
                 </AnimatedSection>
             </div>

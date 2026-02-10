@@ -182,6 +182,12 @@ canvas {
   margin: 0 0 24px 0;
 }
 
+.section-description-fade {
+  opacity: 0.5;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
 .section-cta {
   display: inline-flex;
   align-items: center;
@@ -209,13 +215,20 @@ canvas {
 }
 
 .section-cta-final {
-  cursor: default;
-  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.15em;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0.5em 1em;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .section-cta-final:hover {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
 }
 
 /* Intro section: bottom-center, below 3D title */

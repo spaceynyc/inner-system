@@ -203,6 +203,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
 
         const currentPositions = geometry.attributes.position.array
 
+        const time = state.clock.elapsedTime
+
         // Handle morphing animation
         if (ms.isMorphing) {
             ms.progress += delta * 1.5 // Morph speed
@@ -221,14 +223,21 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             const fromPositions = morphTargets[ms.previousIndex]
             const toPositions = morphTargets[ms.currentIndex]
 
-            // Interpolate vertices
+            // Interpolate vertices with breathing layered on top
             for (let i = 0; i < vertexCount; i++) {
                 const idx = i * 3
-                for (let j = 0; j < 3; j++) {
-                    const from = fromPositions[idx + j]
-                    const to = toPositions[idx + j]
-                    currentPositions[idx + j] = from + (to - from) * t
-                }
+                const x = fromPositions[idx] + (toPositions[idx] - fromPositions[idx]) * t
+                const y = fromPositions[idx + 1] + (toPositions[idx + 1] - fromPositions[idx + 1]) * t
+                const z = fromPositions[idx + 2] + (toPositions[idx + 2] - fromPositions[idx + 2]) * t
+
+                // Breathing stays active during morph for continuity
+                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
+                    + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.03
+                    + Math.sin(time * 0.4) * 0.02
+
+                currentPositions[idx] = x + x * breath
+                currentPositions[idx + 1] = y + y * breath
+                currentPositions[idx + 2] = z + z * breath
             }
 
         } else {
@@ -241,14 +250,20 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 const y = targetPositions[idx + 1]
                 const z = targetPositions[idx + 2]
 
-                // Create wave distortion based on bass (subtle when no audio)
+                // Idle breathing animation — always active so the shape feels alive
+                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
+                    + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.03
+                    + Math.sin(time * 0.4) * 0.02
+
+                // Audio-reactive wave on top of idle breathing
                 const wave = bass > 0.01
-                    ? Math.sin(state.clock.elapsedTime * 8 + x * 5 + y * 3) * bass * 0.08
+                    ? Math.sin(time * 8 + x * 5 + y * 3) * bass * 0.08
                     : 0
 
-                currentPositions[idx] = x + x * wave
-                currentPositions[idx + 1] = y + y * wave
-                currentPositions[idx + 2] = z + z * wave
+                const totalDisplacement = breath + wave
+                currentPositions[idx] = x + x * totalDisplacement
+                currentPositions[idx + 1] = y + y * totalDisplacement
+                currentPositions[idx + 2] = z + z * totalDisplacement
             }
 
         }
