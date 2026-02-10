@@ -114,8 +114,8 @@ export default function Effects() {
 
             <Vignette
                 ref={vignetteRef}
-                offset={0.3}
-                darkness={0.7}
+                offset={0.25}
+                darkness={0.85}
             />
         </EffectComposer>
     )
