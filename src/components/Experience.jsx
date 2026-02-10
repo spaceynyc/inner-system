@@ -164,6 +164,8 @@ function ScrollBridge() {
     useFrame(() => {
         scrollState.offset = scroll.offset
     })
+    // Expose the scroll element so HTML components can scroll to top
+    scrollState.el = scroll.el
     return null
 }
 

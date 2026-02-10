@@ -203,6 +203,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
 
         const currentPositions = geometry.attributes.position.array
 
+        const time = state.clock.elapsedTime
+
         // Handle morphing animation
         if (ms.isMorphing) {
             ms.progress += delta * 1.5 // Morph speed
@@ -221,20 +223,26 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             const fromPositions = morphTargets[ms.previousIndex]
             const toPositions = morphTargets[ms.currentIndex]
 
-            // Interpolate vertices
+            // Interpolate vertices with breathing layered on top
             for (let i = 0; i < vertexCount; i++) {
                 const idx = i * 3
-                for (let j = 0; j < 3; j++) {
-                    const from = fromPositions[idx + j]
-                    const to = toPositions[idx + j]
-                    currentPositions[idx + j] = from + (to - from) * t
-                }
+                const x = fromPositions[idx] + (toPositions[idx] - fromPositions[idx]) * t
+                const y = fromPositions[idx + 1] + (toPositions[idx + 1] - fromPositions[idx + 1]) * t
+                const z = fromPositions[idx + 2] + (toPositions[idx + 2] - fromPositions[idx + 2]) * t
+
+                // Breathing stays active during morph for continuity
+                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
+                    + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.03
+                    + Math.sin(time * 0.4) * 0.02
+
+                currentPositions[idx] = x + x * breath
+                currentPositions[idx + 1] = y + y * breath
+                currentPositions[idx + 2] = z + z * breath
             }
 
         } else {
             // When not morphing, apply audio-reactive displacement to current shape
             const targetPositions = morphTargets[ms.currentIndex]
-            const time = state.clock.elapsedTime
 
             for (let i = 0; i < vertexCount; i++) {
                 const idx = i * 3

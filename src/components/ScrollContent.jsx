@@ -126,21 +126,10 @@ export default function ScrollContent() {
                         <button
                             className="section-cta section-cta-final scroll-to-top-btn"
                             onClick={() => {
-                                // drei ScrollControls uses a fixed scroll container
-                                const scrollContainer = document.querySelector('[data-scroll-container]')
-                                    || document.querySelector('div[style*="overflow"]')
-                                    || document.querySelector('.scroll-content')?.closest('div[style*="overflow"]')
-                                if (scrollContainer) {
-                                    scrollContainer.scrollTo({ top: 0, behavior: 'smooth' })
-                                } else {
-                                    // Fallback: find the drei scroll wrapper (usually the first overflow:auto child of the canvas parent)
-                                    const canvasParent = document.querySelector('canvas')?.parentElement
-                                    if (canvasParent) {
-                                        const scrollEl = Array.from(canvasParent.querySelectorAll('div')).find(
-                                            el => el.style.overflow === 'auto' || el.style.overflowY === 'auto'
-                                        )
-                                        if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' })
-                                    }
+                                // Use drei's scroll element exposed via scrollState
+                                const el = scrollState.el
+                                if (el) {
+                                    el.scrollTo({ top: 0, behavior: 'smooth' })
                                 }
                             }}
                         >
