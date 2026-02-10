@@ -39,16 +39,16 @@ export default function Effects() {
         // --- Bloom: audio-reactive + final section crescendo ---
         if (bloomRef.current) {
             // Ramp bloom intensity in the final section for a visual payoff
-            const finalT = Math.max(0, (scroll - 0.75) / 0.25) // 0→1 over last 25%
-            const finalBoost = finalT * finalT * 0.6 // quadratic ease-in
+            const finalT = Math.max(0, (scroll - 0.65) / 0.35) // 0→1 over last 35% (starts earlier)
+            const finalBoost = finalT * finalT * 1.8 // much stronger crescendo
 
             const baseIntensity = 0.8 + finalBoost
             const audioBoost = isPlaying ? bass * 1.0 : 0
             bloomRef.current.intensity = baseIntensity + audioBoost
 
-            const baseThreshold = 0.85 - finalBoost * 0.2
+            const baseThreshold = 0.85 - finalBoost * 0.4
             const thresholdDrop = isPlaying ? average * 0.3 : 0
-            bloomRef.current.luminanceThreshold = Math.max(baseThreshold - thresholdDrop, 0.4)
+            bloomRef.current.luminanceThreshold = Math.max(baseThreshold - thresholdDrop, 0.25)
         }
 
         // --- Smooth audio values ---

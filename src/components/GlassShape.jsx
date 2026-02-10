@@ -243,8 +243,9 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 const z = targetPositions[idx + 2]
 
                 // Idle breathing animation — always active so the shape feels alive
-                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.012
-                    + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.008
+                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
+                    + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.03
+                    + Math.sin(time * 0.4) * 0.02
 
                 // Audio-reactive wave on top of idle breathing
                 const wave = bass > 0.01
