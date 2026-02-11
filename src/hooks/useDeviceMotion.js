@@ -1,7 +1,5 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
 import * as THREE from 'three'
 
-const LERP_FACTOR = 0.08
 const TILT_SCALE_X = 0.3
 const TILT_SCALE_Y = 0.2
 
@@ -34,8 +32,8 @@ export const deviceMotionState = {
 
   update() {
     if (!this.permitted) return
-    this.x = THREE.MathUtils.lerp(this.x, this._rawGamma * TILT_SCALE_X, LERP_FACTOR)
-    this.y = THREE.MathUtils.lerp(this.y, this._rawBeta * TILT_SCALE_Y, LERP_FACTOR)
+    this.x = this._rawGamma * TILT_SCALE_X
+    this.y = this._rawBeta * TILT_SCALE_Y
   },
 }
 
