@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { MeshTransmissionMaterial, useDetectGPU } from '@react-three/drei'
 import { easing } from 'maath'
 import * as THREE from 'three'
+import { deviceMotionState } from '../hooks/useDeviceMotion'
 
 // Reduced detail level for better performance
 const DETAIL = 3
@@ -97,6 +98,7 @@ function projectDirectionsToGeometry(directions, geometry) {
 
 export default function GlassShape({ playState, frequencyData, scrollData }) {
     const mesh = useRef()
+    const tiltGroup = useRef()
     const [hovered, setHover] = useState(false)
     const normalFrameCounter = useRef(0)
     const gpu = useDetectGPU()
@@ -364,42 +366,54 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 mesh.current.material.samples = targetSamples
             }
         }
+
+        // Apply device motion tilt to the wrapper group so it layers on top
+        // of all existing mesh animations (breathing, audio-reactive, scroll)
+        if (tiltGroup.current) {
+            deviceMotionState.update()
+            if (deviceMotionState.permitted) {
+                easing.damp(tiltGroup.current.rotation, 'x', -deviceMotionState.y, 0.25, delta)
+                easing.damp(tiltGroup.current.rotation, 'y', -deviceMotionState.x, 0.25, delta)
+            }
+        }
     })
 
     return (
-        <mesh
-            ref={mesh}
-            onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer' }}
-            onPointerOut={() => { setHover(false); document.body.style.cursor = 'auto' }}
-            onClick={handleMorph}
-        >
-            <primitive object={baseGeometry} attach="geometry" />
-            {useSimpleMaterial ? (
-                <meshPhysicalMaterial
-                    thickness={1.5}
-                    roughness={0.5}
-                    transmission={1}
-                    ior={1.5}
-                    color="#aaccff"
-                />
-            ) : (
-                <MeshTransmissionMaterial
-                    backside
-                    backsideThickness={3}
-                    samples={4}
-                    resolution={128}
-                    thickness={1.5}
-                    roughness={0.5}
-                    transmission={1}
-                    ior={1.5}
-                    chromaticAberration={0.1}
-                    anisotropy={0.3}
-                    distortion={0.3}
-                    distortionScale={0.3}
-                    temporalDistortion={0.1}
-                    color="#aaccff"
-                />
-            )}
-        </mesh>
+        <group ref={tiltGroup}>
+            <mesh
+                ref={mesh}
+                onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor = 'pointer' }}
+                onPointerOut={() => { setHover(false); document.body.style.cursor = 'auto' }}
+                onClick={handleMorph}
+            >
+                <primitive object={baseGeometry} attach="geometry" />
+                {useSimpleMaterial ? (
+                    <meshPhysicalMaterial
+                        thickness={1.5}
+                        roughness={0.5}
+                        transmission={1}
+                        ior={1.5}
+                        color="#aaccff"
+                    />
+                ) : (
+                    <MeshTransmissionMaterial
+                        backside
+                        backsideThickness={3}
+                        samples={4}
+                        resolution={128}
+                        thickness={1.5}
+                        roughness={0.5}
+                        transmission={1}
+                        ior={1.5}
+                        chromaticAberration={0.1}
+                        anisotropy={0.3}
+                        distortion={0.3}
+                        distortionScale={0.3}
+                        temporalDistortion={0.1}
+                        color="#aaccff"
+                    />
+                )}
+            </mesh>
+        </group>
     )
 }
