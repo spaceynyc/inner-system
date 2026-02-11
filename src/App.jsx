@@ -8,6 +8,7 @@ import { LoadingProvider, useLoading } from './components/LoadingManager'
 import Preloader from './components/Preloader'
 import AssetTracker from './components/AssetTracker'
 import Effects from './components/Effects'
+import MotionPermissionButton from './components/MotionPermissionButton'
 
 class WebGLErrorBoundary extends React.Component {
     state = { hasError: false }
@@ -109,6 +110,7 @@ function AppContent() {
                 </Canvas>
             </WebGLErrorBoundary>
             <Overlay playState={playState} setPlayState={setPlayState} />
+            <MotionPermissionButton />
         </>
     )
 }

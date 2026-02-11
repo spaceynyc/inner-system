@@ -11,6 +11,7 @@ import { useLoading } from './LoadingManager'
 import ScrollContent from './ScrollContent'
 import { scrollState } from '../scrollState'
 import { audioState } from '../audioState'
+// deviceMotionState moved to GlassShape for direct mesh rotation
 
 // Scroll section configuration
 const SCROLL_SECTIONS = [
