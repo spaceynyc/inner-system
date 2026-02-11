@@ -11,6 +11,7 @@ import { useLoading } from './LoadingManager'
 import ScrollContent from './ScrollContent'
 import { scrollState } from '../scrollState'
 import { audioState } from '../audioState'
+import { deviceMotionState } from '../hooks/useDeviceMotion'
 
 // Scroll section configuration
 const SCROLL_SECTIONS = [
@@ -285,6 +286,13 @@ export default function Experience({ playState }) {
             0.25,
             delta
         )
+
+        // Apply device motion tilt to camera rotation
+        deviceMotionState.update()
+        if (deviceMotionState.permitted) {
+            easing.damp(camera.rotation, 'x', -deviceMotionState.y, 0.25, delta)
+            easing.damp(camera.rotation, 'y', -deviceMotionState.x, 0.25, delta)
+        }
 
         // Update background and fog colors
         if (scene.background) {
