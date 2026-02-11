@@ -27,8 +27,8 @@ export const deviceMotionState = {
     this._listening = true
 
     window.addEventListener('deviceorientation', (e) => {
-      this._rawBeta = THREE.MathUtils.clamp((e.beta || 0) - 45, -45, 45) / 45
-      this._rawGamma = THREE.MathUtils.clamp(e.gamma || 0, -45, 45) / 45
+      if (e.beta != null) this._rawBeta = THREE.MathUtils.clamp((e.beta - 45), -45, 45) / 45
+      if (e.gamma != null) this._rawGamma = THREE.MathUtils.clamp(e.gamma, -45, 45) / 45
     }, { passive: true })
   },
 
