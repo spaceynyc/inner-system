@@ -11,6 +11,7 @@ import { useLoading } from './LoadingManager'
 import ScrollContent from './ScrollContent'
 import { scrollState } from '../scrollState'
 import { audioState } from '../audioState'
+import { halftoneState } from '../halftoneState'
 // deviceMotionState moved to GlassShape for direct mesh rotation
 
 // Scroll section configuration
@@ -176,6 +177,17 @@ export default function Experience({ playState }) {
     const { camera, scene } = useThree()
     const scroll = useScroll()
     const { setAssetLoaded } = useLoading()
+
+    // H key toggle for halftone
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.key === 'h' || e.key === 'H') {
+                halftoneState.enabled = !halftoneState.enabled
+            }
+        }
+        window.addEventListener('keydown', handler)
+        return () => window.removeEventListener('keydown', handler)
+    }, [])
 
     // Create audio element once
     const audioElement = useMemo(() => {

@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useRef, useMemo, forwardRef, useEffect } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import {
     EffectComposer,
     Bloom,
@@ -12,15 +12,32 @@ import { useDetectGPU } from '@react-three/drei'
 import { Vector2 } from 'three'
 import { audioState } from '../audioState'
 import { scrollState } from '../scrollState'
+import { HalftoneEffect } from '../shaders/HalftoneEffect'
+import { halftoneState } from '../halftoneState'
+
+// Wrap HalftoneEffect for r3f postprocessing
+const HalftonePass = forwardRef(function HalftonePass(props, ref) {
+    const effect = useMemo(() => new HalftoneEffect(props), [])
+    useEffect(() => {
+        if (ref) {
+            if (typeof ref === 'function') ref(effect)
+            else ref.current = effect
+        }
+    }, [effect, ref])
+    return <primitive object={effect} />
+})
 
 export default function Effects() {
     const bloomRef = useRef()
     const caRef = useRef()
     const noiseRef = useRef()
     const vignetteRef = useRef()
+    const halftoneRef = useRef()
 
     const gpu = useDetectGPU()
     const gpuTier = gpu?.tier ?? 3
+
+    const { size } = useThree()
 
     // Stable Vector2 for ChromaticAberration offset prop (animated via ref in useFrame)
     const caOffset = useMemo(() => new Vector2(0.0005, 0.0005), [])
@@ -29,7 +46,9 @@ export default function Effects() {
     const smoothed = useRef({
         caBass: 0,
         noiseHigh: 0,
-        vigBass: 0
+        vigBass: 0,
+        htBass: 0,
+        htAvg: 0
     })
 
     useFrame((_, delta) => {
@@ -55,10 +74,13 @@ export default function Effects() {
         const s = smoothed.current
         const audioBass = isPlaying ? bass : 0
         const audioHigh = isPlaying ? high : 0
+        const audioAvg = isPlaying ? average : 0
 
         s.caBass += (audioBass - s.caBass) * Math.min(delta * 8, 1)
         s.noiseHigh += (audioHigh - s.noiseHigh) * Math.min(delta * 10, 1)
         s.vigBass += (audioBass - s.vigBass) * Math.min(delta * 6, 1)
+        s.htBass += (audioBass - s.htBass) * Math.min(delta * 8, 1)
+        s.htAvg += (audioAvg - s.htAvg) * Math.min(delta * 6, 1)
 
         // --- Chromatic Aberration: bass → offset, scroll amplifies ---
         if (caRef.current) {
@@ -82,6 +104,38 @@ export default function Effects() {
             const baseVigOffset = 0.25 - scroll * 0.1
             vignetteRef.current.offset = Math.max(baseVigOffset, 0.12)
         }
+
+        // --- Halftone: scroll-driven mode + audio reactivity ---
+        if (halftoneRef.current && halftoneState.enabled) {
+            const uniforms = halftoneRef.current.uniforms
+
+            // Update resolution
+            uniforms.get('uResolution').value.set(size.width, size.height)
+
+            // Scroll-driven intensity: no halftone 0-0.3, fade in 0.3-0.4, full after 0.4
+            const htIntensity = scroll < 0.3 ? 0 :
+                scroll < 0.4 ? (scroll - 0.3) / 0.1 : 1.0
+            uniforms.get('uIntensity').value = htIntensity
+
+            // Mode transitions
+            const htMode = scroll < 0.5 ? 0 :   // dot
+                scroll < 0.7 ? 1 :               // ring
+                    2                              // dot+square
+            uniforms.get('uMode').value = htMode
+
+            // Bass → dot radius pulse
+            const baseRadius = 0.35
+            uniforms.get('uRadius').value = baseRadius + s.htBass * 0.15
+
+            // Average energy → grid density (louder = tighter grid = more dots)
+            const baseGrid = 48.0
+            uniforms.get('uGridSize').value = baseGrid + s.htAvg * 20.0
+        }
+
+        // If halftone disabled, zero intensity
+        if (halftoneRef.current && !halftoneState.enabled) {
+            halftoneRef.current.uniforms.get('uIntensity').value = 0
+        }
     })
 
     return (
@@ -94,6 +148,10 @@ export default function Effects() {
                 mipmapBlur
                 radius={0.85}
             />
+
+            {gpuTier >= 2 && (
+                <HalftonePass ref={halftoneRef} gridSize={48} radius={0.35} stagger />
+            )}
 
             {gpuTier >= 2 && (
                 <ChromaticAberration
