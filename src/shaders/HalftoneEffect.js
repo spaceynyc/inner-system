@@ -14,7 +14,7 @@ uniform float uIntensity;
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
     // Aspect-correct cell size
     float aspect = uResolution.x / uResolution.y;
-    vec2 cellSize = vec2(uGridSize / uResolution.x, uGridSize / uResolution.y);
+    vec2 cellSize = vec2(uGridSize / uResolution.x, uGridSize / uResolution.x);
 
     // Staggered (honeycomb) grid
     vec2 coord = uv;
