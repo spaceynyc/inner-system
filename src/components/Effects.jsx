@@ -106,35 +106,34 @@ export default function Effects() {
         }
 
         // --- Halftone: scroll-driven mode + audio reactivity ---
-        if (halftoneRef.current && halftoneState.enabled) {
+        if (halftoneRef.current) {
             const uniforms = halftoneRef.current.uniforms
 
-            // Update resolution
+            // Always update resolution (prevents stale values after resize while disabled)
             uniforms.get('uResolution').value.set(size.width, size.height)
 
-            // Scroll-driven intensity: no halftone 0-0.3, fade in 0.3-0.4, full after 0.4
-            const htIntensity = scroll < 0.3 ? 0 :
-                scroll < 0.4 ? (scroll - 0.3) / 0.1 : 1.0
-            uniforms.get('uIntensity').value = htIntensity
+            if (halftoneState.enabled) {
+                // Scroll-driven intensity: no halftone 0-0.3, fade in 0.3-0.4, full after 0.4
+                const htIntensity = scroll < 0.3 ? 0 :
+                    scroll < 0.4 ? (scroll - 0.3) / 0.1 : 1.0
+                uniforms.get('uIntensity').value = htIntensity
 
-            // Mode transitions
-            const htMode = scroll < 0.5 ? 0 :   // dot
-                scroll < 0.7 ? 1 :               // ring
-                    2                              // dot+square
-            uniforms.get('uMode').value = htMode
+                // Mode transitions
+                const htMode = scroll < 0.5 ? 0 :   // dot
+                    scroll < 0.7 ? 1 :               // ring
+                        2                              // dot+square
+                uniforms.get('uMode').value = htMode
 
-            // Bass → dot radius pulse
-            const baseRadius = 0.35
-            uniforms.get('uRadius').value = baseRadius + s.htBass * 0.15
+                // Bass → dot radius pulse
+                const baseRadius = 0.35
+                uniforms.get('uRadius').value = baseRadius + s.htBass * 0.15
 
-            // Average energy → grid density (louder = tighter grid = more dots)
-            const baseGrid = 48.0
-            uniforms.get('uGridSize').value = baseGrid + s.htAvg * 20.0
-        }
-
-        // If halftone disabled, zero intensity
-        if (halftoneRef.current && !halftoneState.enabled) {
-            halftoneRef.current.uniforms.get('uIntensity').value = 0
+                // Average energy → grid density (louder = tighter grid = more dots)
+                const baseGrid = 48.0
+                uniforms.get('uGridSize').value = baseGrid + s.htAvg * 20.0
+            } else {
+                uniforms.get('uIntensity').value = 0
+            }
         }
     })
 
