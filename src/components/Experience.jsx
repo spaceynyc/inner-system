@@ -5,6 +5,7 @@ import { easing } from 'maath'
 import * as THREE from 'three'
 import GlassShape from './GlassShape'
 import DreamBackground from './DreamBackground'
+import AudioReactiveBackground from './AudioReactiveBackground'
 import FloatingParticles from './FloatingParticles'
 import FloatingText from './FloatingText'
 import { useLoading } from './LoadingManager'
@@ -299,6 +300,7 @@ export default function Experience({ playState }) {
     return (
         <>
             <DreamBackground />
+            <AudioReactiveBackground />
 
             <PresentationControls
                 global

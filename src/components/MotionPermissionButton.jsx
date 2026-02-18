@@ -26,7 +26,7 @@ export default function MotionPermissionButton() {
         zIndex: 100,
         padding: '8px 20px',
         background: 'rgba(255,255,255,0.08)',
-        backdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(8px)',
         border: '1px solid rgba(255,255,255,0.15)',
         borderRadius: '24px',
         color: 'rgba(255,255,255,0.7)',

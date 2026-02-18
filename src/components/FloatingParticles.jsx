@@ -69,19 +69,19 @@ export default function FloatingParticles({ scrollData }) {
         <>
             <group ref={group1Ref}>
                 <StarLayer
-                    count={120}
+                    count={70}
                     scale={10}
-                    size={0.05}
-                    opacity={0.5}
+                    size={0.045}
+                    opacity={0.38}
                     color={WHITE_BLOOM}
                 />
             </group>
             <group ref={group2Ref}>
                 <StarLayer
-                    count={70}
+                    count={36}
                     scale={15}
-                    size={0.08}
-                    opacity={0.2}
+                    size={0.07}
+                    opacity={0.16}
                     color={CYAN_BLOOM}
                 />
             </group>

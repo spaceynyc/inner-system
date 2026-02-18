@@ -1,12 +1,13 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { useLoading } from './LoadingManager'
 
 export default function Preloader() {
     const { isTransitioning, progress } = useLoading()
 
     return (
-        <motion.div
+      <LazyMotion features={domAnimation}>
+        <m.div
             className="preloader"
             initial={{ opacity: 1 }}
             animate={{
@@ -59,15 +60,16 @@ export default function Preloader() {
                 </div>
 
                 {/* Brand text */}
-                <motion.span
+                <m.span
                     className="preloader-text"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 0.6, y: 0 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                 >
                     THE INNER SYSTEM
-                </motion.span>
+                </m.span>
             </div>
-        </motion.div>
+        </m.div>
+      </LazyMotion>
     )
 }
