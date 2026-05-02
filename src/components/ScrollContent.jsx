@@ -121,7 +121,7 @@ export default function ScrollContent() {
                             The glass responds to every beat, every frequency, every touch.
                         </p>
                         <p className="section-description section-description-fade">
-                            You've seen the system. Now feel it.
+                            You&rsquo;ve seen the system. Now feel it.
                         </p>
                         <button
                             className="section-cta section-cta-final scroll-to-top-btn"
