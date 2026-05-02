@@ -98,9 +98,12 @@ function projectDirectionsToGeometry(directions, geometry) {
 
 export default function GlassShape({ playState, frequencyData, scrollData }) {
     const mesh = useRef()
+    const core = useRef()
+    const shockwave = useRef()
     const tiltGroup = useRef()
     const [hovered, setHover] = useState(false)
     const normalFrameCounter = useRef(0)
+    const shockwaveState = useRef(0)
     const gpu = useDetectGPU()
     const useSimpleMaterial = (gpu?.tier ?? 3) <= 1
 
@@ -168,6 +171,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             ms.currentIndex = (ms.currentIndex + 1) % SHAPES.length
             ms.isMorphing = true
             ms.progress = 0
+            shockwaveState.current = 1
         }
     }
 
@@ -320,6 +324,27 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const targetScale = (baseScale + morphPulse + bassPulse) * scrollScale * finalSectionScaleBias
         easing.damp3(mesh.current.scale, [targetScale, targetScale, targetScale], 0.15, delta)
 
+        if (core.current) {
+            core.current.position.copy(mesh.current.position)
+            const coreScale = targetScale * (0.22 + freq.average * 0.1 + (playState ? 0.04 : 0))
+            easing.damp3(core.current.scale, [coreScale, coreScale, coreScale], 0.18, delta)
+            core.current.rotation.x -= delta * (0.28 + high * 0.8)
+            core.current.rotation.y += delta * (0.42 + mid * 0.9)
+            const coreMaterial = core.current.material
+            coreMaterial.opacity = 0.38 + (playState ? 0.2 : 0) + high * 0.18
+            coreMaterial.emissiveIntensity = 1.2 + bass * 5.5 + freq.average * 2.5
+        }
+
+        if (shockwave.current) {
+            shockwave.current.position.copy(mesh.current.position)
+            shockwave.current.rotation.z = mesh.current.rotation.z + Math.PI * 0.5
+            shockwaveState.current = Math.max(0, shockwaveState.current - delta * 1.25)
+            const impulse = shockwaveState.current
+            const shockScale = targetScale * (1.05 + (1 - impulse) * 2.2)
+            shockwave.current.scale.set(shockScale, shockScale, shockScale)
+            shockwave.current.material.opacity = impulse * impulse * 0.62
+        }
+
         // Scroll-driven rotation bias (add extra rotation based on scroll)
         const scrollRotationBias = scrollOffset * Math.PI * 0.5
         mesh.current.rotation.z = scrollRotationBias
@@ -413,6 +438,34 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                         color="#aaccff"
                     />
                 )}
+            </mesh>
+
+            <mesh ref={core}>
+                <icosahedronGeometry args={[1, 2]} />
+                <meshStandardMaterial
+                    color="#d8f4ff"
+                    emissive="#73d8ff"
+                    emissiveIntensity={1.4}
+                    roughness={0.2}
+                    metalness={0.05}
+                    transparent
+                    opacity={0.48}
+                    blending={THREE.AdditiveBlending}
+                    depthWrite={false}
+                    toneMapped={false}
+                />
+            </mesh>
+
+            <mesh ref={shockwave} rotation={[Math.PI / 2, 0, 0]}>
+                <torusGeometry args={[1, 0.008, 8, 160]} />
+                <meshBasicMaterial
+                    color="#aee8ff"
+                    transparent
+                    opacity={0}
+                    blending={THREE.AdditiveBlending}
+                    depthWrite={false}
+                    toneMapped={false}
+                />
             </mesh>
         </group>
     )

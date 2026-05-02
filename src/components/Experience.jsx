@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import GlassShape from './GlassShape'
 import DreamBackground from './DreamBackground'
 import AudioReactiveBackground from './AudioReactiveBackground'
+import SystemRings from './SystemRings'
 import FloatingParticles from './FloatingParticles'
 import FloatingText from './FloatingText'
 import { useLoading } from './LoadingManager'
@@ -311,6 +312,11 @@ export default function Experience({ playState }) {
                 azimuth={[-Math.PI / 4, Math.PI / 4]}
             >
                 <group position={[0, 0, 0]}>
+                    <SystemRings
+                        playState={playState}
+                        frequencyData={frequencyDataRef}
+                        scrollData={scrollDataRef}
+                    />
                     <GlassShape
                         playState={playState}
                         frequencyData={frequencyDataRef}

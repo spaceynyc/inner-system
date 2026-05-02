@@ -33,54 +33,210 @@ canvas {
 /* Overlay Styles */
 .overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   pointer-events: none;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  padding-bottom: 50px;
+  padding: 0 24px 42px;
   z-index: 10;
+  box-sizing: border-box;
 }
 
-.play-button {
+.signal-panel {
   pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: end;
+  gap: 14px;
+  max-width: min(92vw, 620px);
+}
+
+.activation-button {
   appearance: none;
   -webkit-appearance: none;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  padding: 0;
-  width: 60px;
-  height: 60px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 68px;
+  padding: 10px 22px 10px 10px;
+  color: rgba(238, 247, 255, 0.9);
+  background:
+    linear-gradient(135deg, rgba(170, 210, 255, 0.16), rgba(120, 255, 215, 0.055)),
+    rgba(4, 9, 24, 0.52);
+  border: 1px solid rgba(208, 232, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 280ms ease, border-color 280ms ease, box-shadow 280ms ease, background 280ms ease;
+}
+
+.activation-button::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: radial-gradient(circle at 28% 50%, rgba(112, 215, 255, 0.28), transparent 34%);
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+
+.activation-button:hover,
+.activation-button:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(190, 230, 255, 0.48);
+  box-shadow: 0 24px 80px rgba(40, 140, 255, 0.18), 0 18px 60px rgba(0, 0, 0, 0.42);
+}
+
+.activation-button:focus-visible {
+  outline: 2px solid rgba(170, 225, 255, 0.9);
+  outline-offset: 5px;
+}
+
+.activation-button.is-active::before {
+  opacity: 1;
+}
+
+.activation-orb {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(169, 233, 255, 0.2), rgba(120, 160, 255, 0.04) 62%, transparent 63%);
+  border: 1px solid rgba(198, 232, 255, 0.26);
+}
+
+.activation-orb::before,
+.activation-orb::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  border: 1px solid rgba(156, 224, 255, 0.24);
+  inset: 5px;
+}
+
+.activation-orb::after {
+  inset: -5px;
+  opacity: 0.5;
+  animation: signal-ring 2.8s ease-in-out infinite;
+}
+
+.activation-core {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #dff8ff;
+  box-shadow: 0 0 18px rgba(120, 220, 255, 0.9), 0 0 42px rgba(160, 115, 255, 0.45);
+}
+
+.activation-button.is-active .activation-core {
+  animation: signal-pulse 900ms ease-in-out infinite alternate;
+}
+
+.activation-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.activation-kicker {
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: rgba(218, 235, 255, 0.46);
+  text-transform: uppercase;
+}
+
+.activation-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: rgba(246, 252, 255, 0.92);
+  text-transform: uppercase;
+}
+
+.spectral-hud {
+  min-width: 172px;
+  padding: 14px 16px;
+  border: 1px solid rgba(210, 234, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(3, 8, 22, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  opacity: 0.36;
+  transform: translateY(4px);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.spectral-hud.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.spectral-row {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: rgba(225, 239, 255, 0.54);
+}
+
+.spectral-row i {
+  position: relative;
+  display: block;
+  height: 2px;
+  overflow: hidden;
+  background: rgba(208, 232, 255, 0.14);
+  border-radius: 999px;
+}
+
+.spectral-row i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--level);
+  background: linear-gradient(90deg, rgba(124, 222, 255, 0.95), rgba(198, 158, 255, 0.95));
+  box-shadow: 0 0 12px rgba(130, 220, 255, 0.55);
+  border-radius: inherit;
+  transition: width 120ms linear;
+}
+
+.waveform {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: white;
+  gap: 3px;
+  height: 36px;
+  margin-top: 11px;
+  opacity: 0.72;
 }
 
-.play-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
-  box-shadow: 0 0 20px rgba(100, 200, 255, 0.3);
+.waveform span {
+  width: 2px;
+  min-height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(220, 249, 255, 0.95), rgba(132, 160, 255, 0.28));
+  transition: height 140ms linear;
 }
 
-.play-button:focus-visible {
-  outline: 2px solid rgba(170, 204, 255, 0.9);
-  outline-offset: 4px;
+@keyframes signal-ring {
+  0%, 100% { transform: scale(0.94); opacity: 0.32; }
+  50% { transform: scale(1.12); opacity: 0.68; }
 }
 
-.play-icon {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
+@keyframes signal-pulse {
+  from { transform: scale(0.78); opacity: 0.72; }
+  to { transform: scale(1.18); opacity: 1; }
 }
 
 /* Scroll Indicator (inside ScrollContent intro section) */
@@ -315,6 +471,29 @@ canvas {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .overlay {
+    align-items: stretch;
+    padding: 0 16px 24px;
+  }
+
+  .signal-panel {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    max-width: none;
+  }
+
+  .activation-button {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 64px;
+    padding-right: 18px;
+  }
+
+  .spectral-hud {
+    min-width: 0;
+    width: auto;
+  }
+
   .content-section {
     padding: 0 6vw;
   }
@@ -363,7 +542,13 @@ canvas {
     animation: none;
   }
 
-  .play-button {
+  .activation-button,
+  .activation-orb::after,
+  .activation-core,
+  .spectral-hud,
+  .spectral-row i::after,
+  .waveform span {
+    animation: none;
     transition: none;
   }
 
