@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { ArrowDown, ArrowRight, ArrowUpRight, Maximize2, Minimize2, Pause, Play, SlidersHorizontal, Volume2, VolumeX, X } from 'lucide-react'
 import { audioEngine } from './engine/audio/AudioEngine'
+import { Observatory } from './features/performance/Observatory'
 import { Instrument } from './features/studio/Instrument'
 import { Transport } from './features/audio/Transport'
 import { Dialog } from './ui/Dialog'
@@ -22,6 +23,7 @@ export default function App() {
   const audio = useSyncExternalStore(audioEngine.subscribe, audioEngine.getSnapshot)
   const composition = useStudio((s) => s.composition)
   const open = useStudio((s) => s.open)
+  const observatory = useStudio((s) => s.observatory)
   const immersive = useStudio((s) => s.immersive)
   const reduced = useStudio((s) => s.reducedMotion)
   const notice = useStudio((s) => s.notice)
@@ -121,21 +123,21 @@ export default function App() {
     try { await root.current?.requestFullscreen?.() } catch { /* Immersive layout remains available without browser fullscreen. */ }
   }
 
-  return <div ref={root} className={`app ${ready ? 'is-ready' : ''} ${open ? 'is-studio' : ''} ${immersive ? 'is-immersive' : ''} ${reduced ? 'reduced-motion' : ''}`} style={{ '--accent': PALETTES[composition.palette].color, '--accent-deep': PALETTES[composition.palette].secondary } as React.CSSProperties}>
+  return <div ref={root} className={`app ${ready ? 'is-ready' : ''} ${open ? 'is-studio' : ''} ${immersive ? 'is-immersive' : ''} ${observatory ? 'is-observatory' : ''} ${reduced ? 'reduced-motion' : ''}`} style={{ '--accent': PALETTES[composition.palette].color, '--accent-deep': PALETTES[composition.palette].secondary } as React.CSSProperties}>
     <a className="skip-link" href="#main">Skip to experience</a>
     <div className="atmosphere" aria-hidden="true"><div className="atmosphere-light" /><div className="chamber-line line-one" /><div className="chamber-line line-two" /></div>
     <Suspense fallback={null}><Scene onReady={onReady} /></Suspense>
-    <header className="site-header" inert={immersive}>
+    <header className="site-header" inert={immersive || observatory}>
       <a className="wordmark" href="#arrival" aria-label="The Inner System — beginning" onClick={(e) => { e.preventDefault(); useStudio.setState({ open: false }); go(0) }}><svg className="brand-symbol" width="28" height="31" viewBox="0 0 28 31" fill="none" aria-hidden="true"><path d="M14 1 27 8v15l-13 7L1 23V8L14 1Zm0 0v29M1 8l26 15M27 8 1 23" stroke="currentColor" strokeWidth=".8" /></svg><span>THE INNER SYSTEM</span></a>
-      <nav aria-label="Main navigation"><a href="#resonance" onClick={(e) => { e.preventDefault(); go(1) }}>Experience</a><button onClick={() => useStudio.setState({ open: true })}>Studio <ArrowUpRight size={13} /></button><button onClick={() => setAbout(true)}>About</button></nav>
+      <nav aria-label="Main navigation"><a href="#resonance" onClick={(e) => { e.preventDefault(); go(1) }}>Experience</a><button onClick={() => useStudio.setState({ open: true })}>Studio <ArrowUpRight size={13} /></button><button onClick={() => useStudio.setState({ observatory: true, open: false })}>Observatory <ArrowUpRight size={13} /></button><button onClick={() => setAbout(true)}>About</button></nav>
       <button className="header-sound" onClick={() => { audioEngine.toggle(); setHasEntered(true) }} aria-label={playing ? 'Pause audio signal' : 'Start audio signal'}>{playing ? <Volume2 size={16} /> : <VolumeX size={16} />}<span>{playing ? 'SOUND ON' : 'SOUND OFF'}</span></button>
     </header>
-    <main id="main" className="journey-content" inert={open || immersive}>
+    <main id="main" className="journey-content" inert={open || immersive || observatory}>
       <section ref={(el) => { sections.current[0] = el }} id="arrival" className="chapter chapter-arrival" aria-labelledby="hero-title">
         <div className="chapter-copy hero-copy"><p className="eyebrow"><span className="signal-dot" />01 — ARRIVAL</p>
           <h1 id="hero-title"><span>SOUND</span><span>TAKES</span><span>SHAPE<span className="title-dot">.</span></span></h1>
           <p className="hero-subtitle">An instrument made of light.</p>
-          <div className="entry-actions"><button className="enter-button" onClick={() => void enter()}><span className="play-circle">{playing ? <Pause size={25} strokeWidth={1.2} /> : <Play size={25} strokeWidth={1.2} />}</span><span>{playing ? 'You’re in the signal' : 'Enter with sound'}<small>{playing ? 'Scroll to explore' : 'Headphones recommended'}</small></span><ArrowUpRight size={18} className="entry-arrow" /></button><button className="silent-entry" onClick={() => { setHasEntered(true); go(1) }}>Explore silently <ArrowRight size={14} /></button></div>
+          <div className="entry-actions"><button className="enter-button" onClick={() => void enter()}><span className="play-circle">{playing ? <Pause size={25} strokeWidth={1.2} /> : <Play size={25} strokeWidth={1.2} />}</span><span>{playing ? 'You’re in the signal' : 'Enter with sound'}<small>{playing ? 'Scroll to explore' : 'Headphones recommended'}</small></span><ArrowUpRight size={18} className="entry-arrow" /></button><button className="silent-entry" onClick={() => useStudio.setState({ observatory: true, open: false })}>Enter the Observatory <ArrowRight size={14} /></button></div>
         </div>
         <div className="object-caption"><span className="caption-line" /><div><span className="micro">FORM 0{SHAPES.indexOf(composition.shape) + 1}</span><span>{SHAPE_NAMES[composition.shape]}</span></div><button onClick={() => { useStudio.getState().cycle(); journey.pulse = 1 }} aria-label="Change sculpture form">Change form <ArrowUpRight size={12} /></button></div>
         <div className="chapter-bottom"><span className="micro">AN AUDIOVISUAL EXPLORATION</span><button onClick={() => go(1)}>SCROLL TO EXPLORE <ArrowDown size={15} /></button><span className="micro">EST. IN THE IN-BETWEEN</span></div>
@@ -156,10 +158,11 @@ export default function App() {
         <button className="primary-button release-button" onClick={() => useStudio.setState({ open: true })}>Make it yours <ArrowUpRight size={19} /></button><button className="text-button immersion-button" onClick={() => void fullScreen()}><Maximize2 size={15} />Disappear into the signal</button>
       </div><footer className="experience-footer"><span>THE INNER SYSTEM</span><button onClick={() => setAbout(true)}>An experiment in sound & form</button><button onClick={() => go(0)}>Back to the beginning ↑</button></footer></section>
     </main>
-    <div className="chapter-rail" inert={open || immersive} aria-label="Chapter navigation"><span className="chapter-number">0{chapter + 1}<span> / 04</span></span><div className="journey-progress"><div ref={progress} /></div><span className="rail-title">{CHAPTERS[chapter]}</span><button onClick={() => setHelp(true)} aria-label="Keyboard shortcuts">?</button></div>
-    <button className="floating-instrument" inert={open || immersive} aria-label="Open the instrument" onClick={() => useStudio.setState({ open: true })}><SlidersHorizontal size={15} /><span>THE INSTRUMENT</span></button>
-    <Transport visible={hasEntered || chapter > 0 || audio.status !== 'idle'} />
+    <div className="chapter-rail" inert={open || immersive || observatory} aria-label="Chapter navigation"><span className="chapter-number">0{chapter + 1}<span> / 04</span></span><div className="journey-progress"><div ref={progress} /></div><span className="rail-title">{CHAPTERS[chapter]}</span><button onClick={() => setHelp(true)} aria-label="Keyboard shortcuts">?</button></div>
+    <button className="floating-instrument" inert={open || immersive || observatory} aria-label="Open the instrument" onClick={() => useStudio.setState({ open: true })}><SlidersHorizontal size={15} /><span>THE INSTRUMENT</span></button>
+    {!observatory && <Transport visible={hasEntered || chapter > 0 || audio.status !== 'idle'} />}
     <Instrument />
+    {observatory && <Observatory />}
     <button className="exit-immersive icon-button" onClick={() => void fullScreen()} aria-label="Exit immersive mode"><Minimize2 size={20} /></button>
     {!ready && <div className="scene-loading" role="status"><i />Bringing light into the system</div>}
     {audio.status === 'error' && <div className="audio-error" role="alert"><span>{audio.error}</span><button onClick={() => void audioEngine.play()}>Retry</button></div>}

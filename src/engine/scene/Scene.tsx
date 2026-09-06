@@ -6,6 +6,8 @@ import * as THREE from 'three'
 import { PALETTES } from '../../contracts/composition'
 import { journey, useStudio } from '../../state/studio'
 import { audioEngine } from '../audio/AudioEngine'
+import { gestureEngine as gesture } from '../performance/GestureEngine'
+import { OrbitField, EchoRings } from './OrbitField'
 import { captureScene } from '../../state/render'
 
 class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => void }, { failed: boolean }> {
@@ -21,7 +23,7 @@ function OpticalSculpture({ onReady }: { onReady: () => void }) {
   const group = useRef<THREE.Group>(null)
   const halo = useRef<THREE.Group>(null)
   const nucleus = useRef<THREE.Mesh>(null)
-  const frame = useRef({ angle: 0, reveal: 0, pulse: 0 })
+  const frame = useRef({ angle: 0, reveal: 0, pulse: 0, room: 0, steerX: 0, steerY: 0 })
   const { size, viewport } = useThree()
   const mobile = useMemo(() => window.matchMedia('(max-width: 759px)').matches, [size.width])
   const orbitPoints = useMemo(() => Array.from({ length: 161 }, (_, i) => {
@@ -61,6 +63,11 @@ function OpticalSculpture({ onReady }: { onReady: () => void }) {
     const l = audioEngine.levels
     const energy = quiet ? 0 : l.bass * config.response
     const f = frame.current
+    f.room = THREE.MathUtils.damp(f.room, state.observatory ? 1 : 0, reduced ? 30 : 3, delta)
+    f.steerX = THREE.MathUtils.damp(f.steerX, gesture.input.x, 5, delta)
+    f.steerY = THREE.MathUtils.damp(f.steerY, gesture.input.y, 5, delta)
+    const attraction = gesture.charge * f.room
+    const echo = gesture.recoil * f.room
     f.reveal = THREE.MathUtils.damp(f.reveal, 1, 4, delta)
     if (!reduced) f.angle += delta * (0.055 + energy * 0.09 + (quiet ? 0 : l.mid * config.response * 0.15))
     f.pulse = THREE.MathUtils.damp(f.pulse, journey.pulse, 8, delta)
@@ -70,33 +77,44 @@ function OpticalSculpture({ onReady }: { onReady: () => void }) {
       const t = THREE.MathUtils.smoothstep(p - index, 0, 1)
       return THREE.MathUtils.lerp(values[index], values[index + 1], t)
     }
-    const targetX = mobile || state.immersive ? 0 : state.open ? -viewport.width * 200 / size.width : chapterMix([0.225, -0.215, 0.22, 0.21]) * viewport.width
-    const targetY = state.immersive ? 0 : mobile ? viewport.height * (state.open ? 0.3 : size.height < 760 ? -0.2 : -0.12) : chapterMix([0.0, 0.04, 0.12, 0])
-    const targetScale = mobile ? Math.min(viewport.width * (state.open ? 0.115 : 0.18), 0.88) : Math.min(viewport.width * (state.open ? (1 - 400 / size.width) * 0.19 : 0.112), viewport.height * 0.31, 1.42)
+    let targetX = mobile || state.immersive ? 0 : state.open ? -viewport.width * 200 / size.width : chapterMix([0.225, -0.215, 0.22, 0.21]) * viewport.width
+    let targetY = state.immersive ? 0 : mobile ? viewport.height * (state.open ? 0.3 : size.height < 760 ? -0.2 : -0.12) : chapterMix([0.0, 0.04, 0.12, 0])
+    let targetScale = mobile ? Math.min(viewport.width * (state.open ? 0.115 : 0.18), 0.88) : Math.min(viewport.width * (state.open ? (1 - 400 / size.width) * 0.19 : 0.112), viewport.height * 0.31, 1.42)
+    targetX = THREE.MathUtils.lerp(targetX, 0, f.room)
+    targetY = THREE.MathUtils.lerp(targetY, viewport.height * (mobile ? 0.045 : 0.005), f.room)
+    const roomHeight = Math.max(160, size.height - (mobile ? 425 : 445)) / size.height * viewport.height
+    const roomScale = Math.min(viewport.width * (mobile ? 0.16 : 0.18), roomHeight * 0.26, 0.8)
+    targetScale = THREE.MathUtils.lerp(targetScale, roomScale * (1 - attraction * 0.3), f.room)
     group.current.position.x = THREE.MathUtils.damp(group.current.position.x, targetX, reduced ? 30 : 4, delta)
     group.current.position.y = THREE.MathUtils.damp(group.current.position.y, targetY + (reduced ? 0 : Math.sin(f.angle * 1.7) * 0.045), 4, delta)
     const scale = targetScale * (0.88 + f.reveal * 0.12) * (1 + energy * 0.035 + f.pulse * 0.025)
     group.current.scale.setScalar(scale)
     group.current.rotation.set(
-      0.17 + (reduced ? 0 : journey.pointerY * 0.055),
-      -0.4 + f.angle + (reduced ? 0 : journey.pointerX * 0.09),
+      0.17 + (reduced ? 0 : journey.pointerY * 0.055) + f.steerY * f.room * 1.0,
+      -0.4 + f.angle + (reduced ? 0 : journey.pointerX * 0.09) + f.steerX * f.room * 2.4,
       0.12,
     )
-    const separation = (reduced ? 0 : Math.sin(Math.max(0, Math.min(1, (p - 1.25) / 1.25)) * Math.PI) * 0.19) + energy * 0.028 + f.pulse * 0.06
+    const separation = (reduced ? 0 : Math.sin(Math.max(0, Math.min(1, (p - 1.25) / 1.25)) * Math.PI) * 0.19) + energy * 0.028 + f.pulse * 0.06 + attraction * (reduced ? 0.2 : 0.85) + echo * (reduced ? 0.03 : 0.28)
     group.current.children.forEach((child, i) => {
-      if (i < facets.length) child.position.copy(facets[i].position).multiplyScalar(1 + separation)
+      if (i < facets.length) {
+        child.position.copy(facets[i].position).multiplyScalar(1 + separation)
+        child.quaternion.copy(facets[i].quaternion)
+        child.rotateX(attraction * (reduced ? .03 : .23) * Math.sin(i * 2.4))
+        child.rotateY(attraction * (reduced ? .03 : .23) * Math.cos(i * 1.7))
+      }
     })
     const color = PALETTES[config.palette]
     material.color.set(color.color).lerp(new THREE.Color('#eef2ff'), 0.78)
     material.roughness = 0.02 + (1 - config.clarity) * 0.31
-    material.dispersion = config.dispersion * 1.8
+    material.dispersion = config.dispersion * 1.8 + echo * .6
     material.envMapIntensity = 1.6 + (quiet ? 0 : l.high * 0.75)
     if (halo.current) { halo.current.visible = config.orbit; halo.current.rotation.z = reduced ? 0 : f.angle * 0.35 }
     if (nucleus.current) {
       const mat = nucleus.current.material as THREE.MeshStandardMaterial
       mat.color.set(color.secondary)
       mat.emissive.set(color.color)
-      mat.emissiveIntensity = 0.12 + energy * 0.7
+      mat.emissiveIntensity = 0.12 + energy * 0.7 + attraction * 1.5 + echo * .8
+      nucleus.current.scale.setScalar(.9 + attraction * .16)
       nucleus.current.rotation.y = -f.angle * 0.7
     }
   })
@@ -111,6 +129,7 @@ function OpticalSculpture({ onReady }: { onReady: () => void }) {
     <group ref={halo} rotation={[1.22, 0.24, -0.2]}>
       <Line points={orbitPoints} color="#a9b6fa" lineWidth={0.55} transparent opacity={0.4} />
     </group>
+    <EchoRings />
   </group>
 }
 
@@ -144,6 +163,7 @@ function Chamber({ onReady, onContext }: { onReady: () => void; onContext: (lost
   const { gl, scene, camera, invalidate, setDpr } = useThree()
   const quality = useStudio((s) => s.quality)
   const reduced = useStudio((s) => s.reducedMotion)
+  const observatory = useStudio((s) => s.observatory)
   const perf = useRef({ elapsed: 0, frames: 0, downgraded: false })
   const changedAt = useRef(0)
   useEffect(() => {
@@ -152,8 +172,9 @@ function Chamber({ onReady, onContext }: { onReady: () => void; onContext: (lost
     const unsubscribeAudio = audioEngine.subscribe(wake)
     window.addEventListener('scroll', wake, { passive: true })
     window.addEventListener('resize', wake)
+    window.addEventListener('observatory-input', wake)
     wake()
-    return () => { unsubscribe(); unsubscribeAudio(); window.removeEventListener('scroll', wake); window.removeEventListener('resize', wake) }
+    return () => { unsubscribe(); unsubscribeAudio(); window.removeEventListener('scroll', wake); window.removeEventListener('resize', wake); window.removeEventListener('observatory-input', wake) }
   }, [invalidate])
   useEffect(() => {
     const lost = (event: Event) => { event.preventDefault(); onContext(true) }
@@ -174,9 +195,13 @@ function Chamber({ onReady, onContext }: { onReady: () => void; onContext: (lost
       try {
         const sculpture = scene.getObjectByName('optical-sculpture')
         if (!sculpture) throw new Error('Sculpture is still loading')
-        const center = sculpture.getWorldPosition(new THREE.Vector3())
+        const bounds = new THREE.Box3()
+        sculpture.updateWorldMatrix(true, true)
+        sculpture.children.forEach((child) => { if (child instanceof THREE.Mesh) bounds.expandByObject(child) })
+        const center = bounds.getCenter(new THREE.Vector3()), extent = bounds.getSize(new THREE.Vector3())
         const exportCamera = new THREE.PerspectiveCamera(39, 1, 0.1, 100)
-        exportCamera.position.copy(center).add(new THREE.Vector3(0, 0.08, sculpture.scale.x * 7.8))
+        const distance = Math.max(extent.x, extent.y) * .575 / Math.tan(THREE.MathUtils.degToRad(19.5)) + extent.z * .5
+        exportCamera.position.copy(center).add(new THREE.Vector3(0, 0.08, distance))
         exportCamera.lookAt(center)
         gl.setPixelRatio(1); gl.setSize(1600, 1600, false)
         gl.render(scene, exportCamera)
@@ -196,11 +221,12 @@ function Chamber({ onReady, onContext }: { onReady: () => void; onContext: (lost
         meter.elapsed = 0; meter.frames = 0
       }
     }
-    if (!document.hidden && (!reduced || audioEngine.getSnapshot().status === 'playing' || performance.now() - changedAt.current < 1600)) invalidate()
+    if (!document.hidden && (!reduced || (observatory && gesture.active) || audioEngine.getSnapshot().status === 'playing' || performance.now() - changedAt.current < 1600)) invalidate()
   })
   return <>
     <color attach="background" args={['#040613']} />
     <ChamberBackdrop />
+    {observatory && <OrbitField />}
     <Environment resolution={256} frames={1} environmentIntensity={1}>
       <color attach="background" args={['#283054']} />
       <Lightformer form="rect" intensity={5} color="#e9edff" position={[-4, 3, 2]} scale={[2.8, 8, 1]} rotation={[0, Math.PI / 3, 0]} />

@@ -49,3 +49,15 @@ The mobile instrument reserves space above its bottom sheet for the live sculptu
 ### Hero divider follow-up
 
 The desktop hero now lays out its content and bottom divider in separate grid rows, with a minimum 32 px gap. It grows when the headline needs extra vertical space. Browser measurements confirm clearance at 4042 x 1046, 1440 x 900, and 1280 x 720; the unchanged 390 x 844 mobile layout retains about 12 px clearance. Production build passes.
+
+
+### Observatory interaction upgrade
+
+- Added a dedicated cinematic room with steerable glass facets, sustained unfolding, an illuminated knot core, responsive particles, and bounded expanding echo rings. It preserves the black/midnight/indigo art direction.
+- A deterministic eight-second recorder captures pointer direction, held state, and release events. It automatically loops, can be interrupted by a fresh gesture, and clears on reset or room exit. Timing uses a separate visible-page clock with bounded substeps instead of depending on GPU frame rate.
+- Optional sine tones use the existing user-started audio graph and volume. Voices are capped at eight, rate limited, disconnected when finished, and stopped on pause/disposal. No new dependency, API contract, or cloud service is required.
+- Browser verification on the production build: native pointer drag/release, arrow-key steering, tap-based open/release, automatic replay, live interruption, sound on/off, reset clearing the take, reduced-motion control, and Escape restoring focus to the entry button.
+- Visually inspected 1440 x 900 desktop, 390 x 844 mobile, and 360 x 740 small mobile. The fully opened form stays between the heading and console. At 360 px the document width equals the viewport and all console controls fit vertically.
+- Exported a fully expanded composition: the browser loaded the actual 1600 x 1600 PNG preview. Export framing now measures the visible sculpture meshes. The prior OS-save verification limitation still applies.
+- 27 automated tests pass, including slow-frame take timing, replay across repeated loops, cancellation, waveform limits, and audio voice cleanup. ESLint and the TypeScript/production build pass. No browser console errors were observed during the Observatory playthrough.
+- Motion takes are session-only: they are not saved in the collection or included in shared composition links. Reduced motion removes particle movement and echo rings, reduces unfolding distance, and retains explicit directional controls.

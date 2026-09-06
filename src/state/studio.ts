@@ -8,6 +8,7 @@ type StudioState = {
   history: Composition[]
   saved: SavedComposition[]
   open: boolean
+  observatory: boolean
   reducedMotion: boolean
   quality: Quality
   quiet: boolean
@@ -30,7 +31,7 @@ function persist(saved: SavedComposition[], composition: Composition) {
 }
 
 export const useStudio = create<StudioState>((set, get) => ({
-  composition: { ...PRESETS[0] }, history: [], saved: [], open: false,
+  composition: { ...PRESETS[0] }, history: [], saved: [], open: false, observatory: false,
   reducedMotion: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches,
   quality: 'auto', quiet: false, immersive: false, notice: '', sharedId: null,
   set: (patch, remember = true) => {

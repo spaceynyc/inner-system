@@ -27,6 +27,9 @@ Preview serves the production frontend and the same local API at http://127.0.0.
 - Native scrolling through Arrival, Resonance, Refraction, and Release, with HTML typography and real chapter links.
 - Three beveled glass forms authored in Blender: icosahedron, dodecahedron, octahedron. Facets separate through the journey and respond to the signal.
 - Bass changes mass; mids change motion; highs change reflected light. No audio or AudioContext exists before interaction.
+- The Observatory turns the sculpture into a gesture instrument: drag to steer, hold to unfold its facets, release to send expanding light rings. A particle field follows the attraction.
+- Record an eight-second gesture and replay its movement and echoes in a loop. Takes live only in memory and clear when the room closes. Tap controls and arrow keys provide alternatives to dragging.
+- Optional pentatonic gesture tones join the existing audio graph only after playback starts, share its volume, and stop when audio pauses.
 - The instrument changes geometry, atmosphere, response, clarity, dispersion, and orbit. Undo stores up to 30 changes. Save keeps up to 20 compositions on the device.
 - The player supports play/pause, seeking, volume, mute, and local audio up to 50 MB. Local audio is decoded by the browser and never sent to the API.
 - Unlisted links use PostgreSQL when configured. Portable links encode validated settings in the URL and work without a service. Neither includes local audio.
@@ -42,8 +45,9 @@ src/styles.css               Layout, typography, responsive controls
 src/contracts/composition.ts Versioned Zod contract and portable-link codec
 src/state/                   Zustand studio state and render capture interface
 src/engine/audio/            Lazy Web Audio graph and smoothed frequency analysis
+src/engine/performance/      Bounded gesture recorder and deterministic replay
 src/engine/scene/            Deferred R3F scene, glass optics, lighting, PNG capture
-src/features/                Audio transport and instrument/collection UI
+src/features/                Audio, instrument/collection, and Observatory UI
 server/                      PostgreSQL adapter, repository, HTTP service, migration
 api/service.ts               Vercel function entry point
 public/models/               Runtime GLB assets

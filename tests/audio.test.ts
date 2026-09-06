@@ -20,7 +20,8 @@ class TestContext extends EventTarget {
   constructor() { super(); TestContext.instances.push(this) }
   createAnalyser = () => ({ ...node(), fftSize: 1024, frequencyBinCount: 512, smoothingTimeConstant: 0, getByteFrequencyData: (data: Uint8Array) => data.fill(100) })
   createMediaElementSource = vi.fn(node)
-  createGain = () => ({ ...node(), gain: { value: 1, setTargetAtTime: vi.fn() } })
+  createGain = () => ({ ...node(), gain: { value: 1, setTargetAtTime: vi.fn(), setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() } })
+  createOscillator = vi.fn(() => ({ ...node(), type: 'sine', frequency: { value: 0 }, start: vi.fn(), stop: vi.fn(), onended: null as null | (() => void) }))
 }
 let engine: AudioEngine
 beforeEach(() => {
@@ -31,6 +32,21 @@ beforeEach(() => {
 afterEach(() => { engine.dispose(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('audio lifecycle', () => {
+  it('keeps gesture tones silent before playback and bounds and cleans up active voices', async () => {
+    engine.resonate(1, 2)
+    expect(TestContext.instances).toHaveLength(0)
+    await engine.play()
+    const context = TestContext.instances[0]
+    for (let i = 0; i < 20; i++) { context.currentTime += .1; engine.resonate(.8, 3) }
+    expect(context.createOscillator).toHaveBeenCalledTimes(8)
+    const voice = context.createOscillator.mock.results[0].value
+    expect(voice.frequency.value).toBe(196)
+    expect(voice.start).toHaveBeenCalledTimes(1)
+    engine.pause(); engine.resonate(1, 1)
+    expect(context.createOscillator).toHaveBeenCalledTimes(8)
+    expect(voice.stop).toHaveBeenCalledTimes(2)
+    expect(voice.onended).toBeNull()
+  })
   it('creates no media or audio context before a play gesture and reuses its graph', async () => {
     expect(TestContext.instances).toHaveLength(0)
     expect(TestAudio.instances).toHaveLength(0)

@@ -151,3 +151,50 @@
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
   .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+@layer components {
+  .is-observatory .site-header, .is-observatory .journey-content, .is-observatory .chapter-rail, .is-observatory .floating-instrument { opacity: 0; pointer-events: none; }
+  body:has(.observatory[open]) { overflow: hidden; }
+  .dialog.observatory { position: fixed; inset: 0; margin: 0; width: 100%; height: 100%; max-width: none; max-height: none; padding: 0; border: 0; border-radius: 0; background: transparent; color: #dce4ff; overflow: hidden; box-shadow: none; }
+  .observatory::backdrop { background: transparent; backdrop-filter: none; }
+  .observatory .dialog-heading { position: absolute; inset: 0 0 auto; z-index: 5; padding: 27px 42px; background: linear-gradient(#02040ce8, #02040c00); border: 0; }
+  .observatory .dialog-heading h2 { font-size: 11px; letter-spacing: .23em; text-transform: uppercase; font-weight: 500; }
+  .observatory .dialog-heading .icon-button { border: 1px solid #9aadff30; border-radius: 50%; background: #070c2090; }
+  .observatory-frame { position: absolute; inset: 14px; pointer-events: none; border: 1px solid #a7b4ff15; z-index: 4; }
+  .observatory-intro { position: absolute; z-index: 2; top: 112px; left: 50%; transform: translateX(-50%); text-align: center; width: 90%; pointer-events: none; }
+  .observatory-intro .micro { font-size: 8px; letter-spacing: .23em; color: #7c8bbb; }
+  .observatory-intro h3 { font-size: clamp(32px, 3.4vw, 58px); font-weight: 350; letter-spacing: -.06em; margin: 12px 0 10px; line-height: 1.1; }
+  .observatory-intro h3 em { font-weight: 300; color: #a2b2f1; font-family: Georgia, serif; }
+  .observatory-intro p { font-size: 11px; color: #94a3c7; letter-spacing: .02em; }
+  .gesture-surface { position: absolute; inset: 105px 0 205px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; outline-offset: -18px; }
+  .gesture-surface.is-held { cursor: grabbing; }
+  .field-reticle { position: absolute; width: min(48vh, 56vw); aspect-ratio: 1; top: 50%; left: 50%; transform: translate(-50%, -37%); opacity: .35; pointer-events: none; }
+  .field-reticle i { position: absolute; width: 13px; height: 13px; border: 1px solid #96a8ed; }
+  .field-reticle i:nth-child(1) { left: 0; top: 0; border-right: 0; border-bottom: 0; }.field-reticle i:nth-child(2) { right: 0; top: 0; border-left: 0; border-bottom: 0; }.field-reticle i:nth-child(3) { right: 0; bottom: 0; border-left: 0; border-top: 0; }.field-reticle i:nth-child(4) { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+  .observatory-reading { position: absolute; left: 5.5%; top: 42%; pointer-events: none; display: flex; flex-direction: column; gap: 14px; }
+  .observatory-reading > span { font-size: 8px; letter-spacing: .2em; color: #778bbd; }.observatory-reading strong { font-size: 35px; font-weight: 250; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }.observatory-reading small { font-size: 12px; margin-left: 4px; color: #8596c7; }
+  .observatory-reading > div { height: 65px; width: 1px; background: #667bb736; }.observatory-reading i { display: block; width: 1px; height: 100%; background: #b6c2ff; transform-origin: bottom; transition: transform .1s linear; }
+  .observatory-console { position: absolute; bottom: max(33px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 5; width: min(740px, calc(100% - 70px)); padding: 18px 22px 13px; border: 1px solid #a3b4ff26; background: linear-gradient(120deg, #0a1025ed, #070b1bf5); border-radius: 8px; box-shadow: 0 20px 90px #01020b90; backdrop-filter: blur(18px); }
+  .take-status { display: flex; align-items: center; gap: 9px; font-size: 10px; color: #9eaed5; }.take-time { margin-left: auto; font-size: 9px; letter-spacing: .1em; font-variant-numeric: tabular-nums; }.take-light { width: 4px; height: 4px; border-radius: 50%; background: #98a8d4; }.take-light.recording { background: #c9c1ff; box-shadow: 0 0 10px #9486ff; }.take-light.replaying { background: #798bff; box-shadow: 0 0 12px #516eff; }
+  .take-timeline { height: 1px; width: 100%; margin: 12px 0 14px; background: #8c9ad72a; }.take-timeline i { display: block; width: 100%; height: 1px; background: #aebdff; transform-origin: left; transition: transform .1s linear; }
+  .observatory-controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .observatory-controls button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; white-space: nowrap; min-height: 42px; color: #c5d0f0; }
+  .observatory-controls .echo-button { border: 1px solid #a1b0fa52; background: #29376060; border-radius: 4px; padding: 0 14px; color: #e5ebff; }.observatory-controls button[aria-pressed='true'] { color: #b9b2ff; }.console-divider { width: 1px; height: 20px; background: #9cb0eb25; }
+  .observatory-utility { display: flex; align-items: center; justify-content: center; gap: 23px; margin-top: 11px; }.observatory-utility button { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; color: #8294c0; min-height: 32px; }.observatory-utility button:hover { color: #dbe5ff; }
+  .observatory-note { text-align: center; font-size: 9px; color: #7081aa; margin-top: 7px; line-height: 1.5; }.observatory-message { font-size: 11px; color: #b7c7ef; text-align: center; margin-top: 9px; }
+  .observatory-still { position: absolute; bottom: 45px; right: 40px; width: 135px; z-index: 6; padding: 6px; border: 1px solid #9aaeff40; background: #080d21; border-radius: 4px; }.observatory-still img { width: 100%; display: block; }.observatory-still span { display: flex; justify-content: space-between; align-items: center; padding: 9px 4px 5px; font-size: 9px; color: #b0c1f5; }
+}
+@layer responsive {
+  @media (max-width: 1050px) { .observatory-still { right: 30px; top: 105px; bottom: auto; width: 95px; }.observatory-still span { font-size: 8px; }.observatory-reading { left: 5%; } }
+  @media (max-width: 759px) {
+    .dialog.observatory { max-height: none; }.observatory .dialog-heading { padding: 20px 23px; }.observatory .dialog-heading h2 { font-size: 9px; letter-spacing: .16em; }.observatory-frame { inset: 9px; }
+    .observatory-intro { top: 100px; }.observatory-intro .micro { font-size: 7px; }.observatory-intro h3 { font-size: 35px; margin-top: 13px; }.observatory-intro p { font-size: 10px; }
+    .gesture-surface { inset: 185px 0 247px; }.field-reticle { width: 76vw; top: 48%; transform: translate(-50%, -50%); }
+    .observatory-reading { left: 27px; top: 220px; gap: 5px; }.observatory-reading > span { font-size: 6px; letter-spacing: .12em; }.observatory-reading strong { font-size: 21px; }.observatory-reading small { font-size: 8px; }.observatory-reading > div, .observatory-reading > span:last-child { display: none; }
+    .observatory-console { width: calc(100% - 34px); bottom: max(19px, env(safe-area-inset-bottom)); padding: 15px 15px 12px; }.take-status { font-size: 9px; }.take-time { font-size: 8px; }.take-timeline { margin: 11px 0; }
+    .observatory-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; }.console-divider { display: none; }.observatory-controls button { font-size: 11px; min-height: 41px; }.observatory-controls .echo-button { padding: 0 10px; }.observatory-utility { justify-content: space-between; flex-wrap: wrap; column-gap: 12px; row-gap: 0; margin-top: 7px; }.observatory-utility button { font-size: 9px; gap: 4px; min-height: 31px; }.observatory-utility svg { width: 11px; }.observatory-note { font-size: 8px; margin-top: 5px; }
+    .observatory-still { right: 27px; top: 208px; width: 78px; }.observatory-still span { font-size: 7px; padding: 6px 0 2px; }.observatory-still svg { width: 10px; }
+  }
+  @media (max-height: 740px) { .observatory-intro { top: 75px; }.observatory-intro h3 { font-size: 29px; margin: 7px 0; }.observatory-intro .micro { display: none; }.observatory-reading { top: 175px; }.observatory-note { display: none; }.observatory-console { bottom: 15px; }.gesture-surface { top: 140px; bottom: 217px; } }
+  @media (max-height: 520px) and (min-width: 760px) { .observatory-intro { left: 19%; width: 30%; top: 110px; }.observatory-intro p { max-width: 170px; margin: auto; line-height: 1.6; }.observatory-reading { display: none; }.observatory-console { width: min(660px, calc(100% - 60px)); padding-top: 10px; }.observatory-intro h3 { font-size: 28px; } }
+}
