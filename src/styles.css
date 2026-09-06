@@ -121,6 +121,10 @@
   .spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } @keyframes breathe { 50% { opacity: .25; } }
 }
 @layer responsive {
+  @media (min-width: 760px) {
+    .chapter-arrival { display: grid; grid-template-rows: minmax(min-content, 1fr) auto; height: auto; min-height: max(700px, 100svh); row-gap: 32px; padding-bottom: 94px; }
+    .chapter-arrival .chapter-bottom { position: static; width: 100%; }
+  }
   @media (min-width: 1900px) { .chapter { padding-left: 9vw; padding-right: 9vw; }.chapter-copy { max-width: 730px; }.chapter h1 { font-size: clamp(180px, 9.2vw, 260px); }.object-caption { left: 70%; }.chapter-resonance .chapter-copy { max-width: 620px; } }
   @media (max-width: 1180px) { .chapter-rail { gap: 10px; }.journey-progress { width: 42px; }.rail-title { display: none; }.transport { gap: 9px; }.floating-instrument span { display: none; }.object-caption { left: 65%; }.object-caption button { display: none; }.chapter h1 { font-size: 11vw; }.chapter-copy { width: 47%; }.site-header nav { padding-right: 8px; gap: 22px; }.chapter-release .chapter-copy { width: 63%; } }
   @media (max-height: 780px) and (min-width: 760px) { .chapter { min-height: 700px; padding-top: 105px; padding-bottom: 125px; }.chapter h1 { font-size: min(10vw, 105px); margin: 20px 0; }.entry-actions { margin-top: 23px; }.play-circle { height: 52px; width: 52px; }.silent-entry { margin-left: 72px; }.chapter h2 { font-size: min(8vw, 88px); }.band-key { margin-top: 25px; }.chapter-release h2 { font-size: min(8.8vw, 112px); } }

@@ -45,3 +45,7 @@ The mobile instrument reserves space above its bottom sheet for the live sculptu
 - No Lighthouse, Core Web Vitals, or device-wide frame-rate claim is made. The Three.js chunk remains about 725 KB minified / 185 KB gzip and triggers Vite's normal size advisory. The graphics path is deferred; this does not eliminate its download or GPU cost.
 - WebGL context recovery has a retry UI and listener cleanup, but a forced device/context-loss experiment was not performed.
 - The original bundled MP3's rights were not independently verified. Models and brand artwork were created for this overhaul; DM Sans carries its bundled OFL license.
+
+### Hero divider follow-up
+
+The desktop hero now lays out its content and bottom divider in separate grid rows, with a minimum 32 px gap. It grows when the headline needs extra vertical space. Browser measurements confirm clearance at 4042 x 1046, 1440 x 900, and 1280 x 720; the unchanged 390 x 844 mobile layout retains about 12 px clearance. Production build passes.
