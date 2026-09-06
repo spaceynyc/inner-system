@@ -1,99 +1,95 @@
 # THE INNER SYSTEM
 
-An immersive, audio-reactive 3D web experience built with React Three Fiber.
+A small universe made of sound and light. Four editorial chapters lead into an interactive instrument with three Blender-authored glass forms, real audio analysis, and a black / midnight / indigo palette.
 
-Live site: https://inner-system-two.vercel.app/
+## Run
 
-## What This Project Is
+Use Node **22.21.1** and npm **11.8.0** (`.nvmrc` and the lockfile pin the baseline).
 
-THE INNER SYSTEM is a cinematic, scroll-driven single-page experience where sound, geometry, lighting, and post-processing respond in real time.
-
-The core visual is a transmissive "glass" polyhedron that:
-- morphs between geometric states on click,
-- reacts to live frequency bands from an audio analyser,
-- shifts position and scale with page scroll,
-- and is rendered with dynamic lighting and bloom effects.
-
-## Experience Highlights
-
-- Audio-reactive deformation driven by bass, mids, highs, and average frequency energy.
-- Morph transitions between icosahedron, dodecahedron, and octahedron targets.
-- Four scroll sections with camera interpolation and atmospheric color transitions.
-- Floating particles and typography layered into the 3D scene.
-- HTML overlay content synchronized with R3F scroll state.
-- Custom preloader with staged loading progress and smooth scene reveal.
-
-## Interaction Model
-
-- `Play/Pause`: Starts or pauses the audio loop and all audio-reactive behavior.
-- `Scroll`: Moves through 4 sections (`intro`, `explore`, `discover`, `transcend`).
-- `Click Glass Shape`: Cycles to the next geometry state.
-- `Drag Orbit`: Presentation controls allow subtle scene interaction.
-
-## Tech Stack
-
-- React + Vite
-- Three.js + @react-three/fiber
-- @react-three/drei
-- @react-three/postprocessing
-- Framer Motion
-- Maath
-
-## Project Structure
-
-```text
-src/
-  App.jsx
-  index.css
-  audioState.js
-  scrollState.js
-  components/
-    Experience.jsx
-    GlassShape.jsx
-    DreamBackground.jsx
-    FloatingParticles.jsx
-    FloatingText.jsx
-    ScrollContent.jsx
-    Overlay.jsx
-    Effects.jsx
-    Preloader.jsx
-    LoadingManager.jsx
-    AssetTracker.jsx
-```
-
-## Local Development
-
-```bash
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
-Default dev URL: `http://localhost:5173`
+Open http://127.0.0.1:5173. The local API automatically initializes embedded PostgreSQL in `.data/postgres`; no external account is needed. Leave `.env` absent for this mode. Stop the dev server before starting a second process against that embedded database.
 
-## Build And Preview
-
-```bash
+```sh
+npm run lint
+npm test
 npm run build
 npm run preview
 ```
 
-## Audio Asset Note
+Preview serves the production frontend and the same local API at http://127.0.0.1:4173. It is a local verification server, not a public backend host.
 
-The scene expects an audio file at:
+## Experience
 
-`public/assets/track.mp3`
+- Native scrolling through Arrival, Resonance, Refraction, and Release, with HTML typography and real chapter links.
+- Three beveled glass forms authored in Blender: icosahedron, dodecahedron, octahedron. Facets separate through the journey and respond to the signal.
+- Bass changes mass; mids change motion; highs change reflected light. No audio or AudioContext exists before interaction.
+- The instrument changes geometry, atmosphere, response, clarity, dispersion, and orbit. Undo stores up to 30 changes. Save keeps up to 20 compositions on the device.
+- The player supports play/pause, seeking, volume, mute, and local audio up to 50 MB. Local audio is decoded by the browser and never sent to the API.
+- Unlisted links use PostgreSQL when configured. Portable links encode validated settings in the URL and work without a service. Neither includes local audio.
+- Centered 1600 x 1600 PNG artwork export with an inspectable preview and download link.
+- Keyboard controls: Space play/pause, M change form, I instrument, ? help, Escape close/exit. Native dialogs contain focus and restore it on close.
+- Reduced motion, reduced intensity, and automatic/high/light visual quality. The renderer stops in hidden tabs and settles to idle in reduced-motion mode when audio is paused.
 
-If this file is missing, the experience still renders, but audio-reactive effects will stay minimal.
+## Architecture
 
-## Performance Notes
+```text
+src/App.tsx                  Semantic page, chapter navigation, shared-link loading
+src/styles.css               Layout, typography, responsive controls
+src/contracts/composition.ts Versioned Zod contract and portable-link codec
+src/state/                   Zustand studio state and render capture interface
+src/engine/audio/            Lazy Web Audio graph and smoothed frequency analysis
+src/engine/scene/            Deferred R3F scene, glass optics, lighting, PNG capture
+src/features/                Audio transport and instrument/collection UI
+server/                      PostgreSQL adapter, repository, HTTP service, migration
+api/service.ts               Vercel function entry point
+public/models/               Runtime GLB assets
+art/                         Editable Blender source
+scripts/build-sculptures.py   Reproducible model generation
+```
 
-- Geometry detail is intentionally constrained for stable frame time.
-- Vertex normals on the glass mesh are recalculated on a reduced interval instead of every frame.
-- Canvas DPR is capped for balance between fidelity and performance.
+React 19, TypeScript 5.9, Vite 8, Three.js 0.185, Fiber 9, Drei 10, Zustand 5, Zod 4, PostgreSQL. DOM settings update React; render-frequency data stays outside React subscriptions. Graphics and post effects load in separate chunks. Three's core remains a substantial download; the build reports its size rather than hiding the warning.
 
-## Deployment
+## Production sharing on Vercel
 
-This repository is configured as a standard Vite app and deploys cleanly to platforms like Vercel.
+The frontend remains usable with portable links if no database is configured. For short links, configure a PostgreSQL database and these **server-only** environment variables for the intended deployment environment:
 
-Current production deployment:
-https://inner-system-two.vercel.app/
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection URL using the provider's TLS settings |
+| `SHARE_SIGNING_KEY` | Random secret of at least 32 characters, stable across deployments |
+| `CRON_SECRET` | Random secret for authenticated daily cleanup |
+| `APP_ORIGIN` | Canonical public origin, e.g. `https://inner-system-two.vercel.app` |
+
+Use separate databases/signing keys for preview and production. Never prefix secrets with `VITE_`. `.env.example` is documentation; copying it without real values does not configure a working service. The scripts read `.env` when present.
+
+Run `npm run db:migrate` with the target database environment before enabling persistent sharing. Migrations are idempotent initialization SQL in `server/schema.ts`; future destructive changes need an explicit versioned migration and backup. Vercel's Node major follows `package.json`; patch-level runtime selection is controlled by Vercel.
+
+`vercel.json` maps `/api/*` and `/s/:id` to the serverless entry point, sets response headers and model caching, and schedules daily authenticated cleanup. Ordinary static hosting supports the portable-link fallback but must not be described as hosting the PostgreSQL API.
+
+### API
+
+| Method and route | Behavior |
+| --- | --- |
+| `GET /api/health` | Liveness and configuration flag; not a database connectivity probe |
+| `GET /api/presets` | Versioned curated compositions |
+| `POST /api/compositions` | JSON contract, `Idempotency-Key` required; returns ID, ownership token, expiry |
+| `GET /api/compositions/:id` | Active composition or 404 |
+| `DELETE /api/compositions/:id` | Revoke using `Authorization: Bearer <ownership-token>` |
+| `GET /s/:id` | Social metadata and redirect into the composition |
+| `GET /api/cleanup` | Cleanup with the configured cron bearer secret |
+
+Bodies are limited to 8 KB, settings are strictly validated, and writes use a shared 12/minute identity bucket. IDs are random and unlisted; they are not private access control. Links expire after 90 days. The database stores a hash of the revoke token, not the token itself. Owner controls survive reload in the same browser session and appear in Collection. Closing/clearing that session loses ownership controls. Portable links cannot be revoked.
+
+The service stores composition settings and metadata, never audio. Operational logs omit audio, file names, request bodies, raw network identities, and secrets. Plan provider-level quotas and abuse controls before marketing a public anonymous sharing service at scale.
+
+## Models and assets
+
+Blender 4.5 was used for the source scene and exports. With Blender on PATH, run `npm run models`; otherwise invoke your Blender executable with `--background --python scripts/build-sculptures.py` from this directory. The script rebuilds the three GLBs and `art/inner-system-sculptures.blend`.
+
+The models and brand mark were created for this overhaul. DM Sans is self-hosted from Fontsource under its bundled OFL license. The MP3 is carried over unchanged from the original repository; its licensing/provenance has not been independently established. Confirm those rights before broader distribution.
+
+See `docs/QA.md` for the actual verification record and remaining limits.

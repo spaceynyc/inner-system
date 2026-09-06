@@ -40,3 +40,7 @@ coverage/
 .cache/
 .temp/
 .tmp/
+.data/
+.vercel/
+art/*.blend1
+test-results/
