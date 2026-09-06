@@ -1,33 +1,49 @@
 {
   "name": "inner-system",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.21.1 <23",
+    "npm": ">=11"
+  },
+  "packageManager": "npm@11.8.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "dev": "node --env-file-if-exists=.env node_modules/vite/bin/vite.js --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src server api tests vite.config.ts --max-warnings 0",
+    "test": "vitest run",
+    "preview": "node --env-file-if-exists=.env node_modules/vite/bin/vite.js preview --host 127.0.0.1",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx server/migrate.ts",
+    "models": "blender --background --python scripts/build-sculptures.py"
   },
   "dependencies": {
-    "@react-three/drei": "^9.96.1",
-    "@react-three/fiber": "^8.15.12",
-    "@react-three/postprocessing": "^2.19.1",
-    "framer-motion": "^10.18.0",
-    "maath": "^0.10.7",
-    "postprocessing": "^6.38.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "three": "^0.160.0"
+    "@fontsource-variable/dm-sans": "5.3.0",
+    "@react-three/drei": "10.7.8",
+    "@react-three/fiber": "9.7.0",
+    "@react-three/postprocessing": "3.1.1",
+    "lucide-react": "^0.577.0",
+    "postprocessing": "6.39.4",
+    "postgres": "3.4.9",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.185.1",
+    "zod": "4.5.4",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
+    "@electric-sql/pglite": "0.5.8",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^8.55.0",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "vite": "^8.0.10"
+    "eslint": "10.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.69.0",
+    "vite": "8.2.2",
+    "vitest": "5.0.0"
   }
 }

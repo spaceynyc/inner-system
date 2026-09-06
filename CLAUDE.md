@@ -1,60 +1,13 @@
-# CLAUDE.md
+# Working on The Inner System
 
-## Project Overview
+Read README.md for the current architecture, commands, API contract, and deployment setup.
 
-THE INNER SYSTEM - A high-end interactive 3D landing page built with React Three Fiber featuring a frosted glass centerpiece, floating particles, and audio-reactive animations.
-
-## Tech Stack
-
-- **Framework:** React 18.2 + Vite 5.0
-- **3D Graphics:** React Three Fiber 8.15 + Three.js 0.160 + Drei 9.96
-- **Animation:** Framer Motion 10.18, Maath (math utilities)
-- **Styling:** CSS with glass morphism patterns
-
-## Commands
-
-```bash
-npm run dev      # Start dev server with HMR
-npm run build    # Production build
-npm run lint     # ESLint (strict mode, 0 warnings allowed)
-npm run preview  # Preview production build
-```
-
-## Project Structure
-
-```
-src/
-├── components/
-│   ├── DreamBackground.jsx   # Scene background, fog, colors
-│   ├── Experience.jsx        # Main 3D scene orchestrator
-│   ├── FloatingParticles.jsx # Sparkle particle systems
-│   ├── FloatingText.jsx      # 3D text rendering
-│   ├── GlassShape.jsx        # Interactive icosahedron with transmission material
-│   └── Overlay.jsx           # Play/pause UI overlay
-├── App.jsx                   # Root component with Canvas setup
-├── main.jsx                  # Entry point
-└── index.css                 # Global styles
-public/assets/                # Static assets (audio, images)
-```
-
-## Architecture Notes
-
-- **State Management:** Simple React hooks (useState), no Redux/Context
-- **Animation Loop:** useFrame hook for per-frame 3D updates
-- **Audio:** PositionalAudio from Drei, controlled via playState prop
-- **Interactivity:** PresentationControls for mouse/touch orbit, hover effects on GlassShape
-
-## Code Conventions
-
-- Functional components with hooks
-- JSX files for React components
-- CSS class selectors with descriptive names
-- Three.js refs for direct mesh manipulation
-- Maath easing for smooth interpolations
-
-## Key Materials & Effects
-
-- MeshTransmissionMaterial for frosted glass (chromatic aberration, anisotropy)
-- Sparkles component for particle effects
-- Fog for depth perception
-- Backdrop filters for UI glass morphism
+- Use TypeScript. Current entry points are `src/main.tsx`, `src/App.tsx`, and `vite.config.ts`.
+- Keep the palette black, midnight, and indigo. Use HTML for text and controls; Three.js renders the artwork.
+- Maintain a user-gesture boundary for audio. Local audio must stay on the device.
+- Do not put per-frame frequency or pointer data into React state.
+- The v1 composition schema is shared by client and server. Validate changes at both boundaries and preserve older saved compositions deliberately.
+- Never expose server secrets as `VITE_` variables. Local embedded PostgreSQL is for development, not serverless persistence.
+- Run `npm run lint`, `npm test`, and `npm run build` after functional changes. Browser-check the actual production build: play/pause, navigation, studio changes, save/reopen, sharing/revocation, and PNG export. Compilation alone is insufficient.
+- Check desktop and portrait layouts and native dialog keyboard behavior. Honor reduced motion and background-tab suspension.
+- Blender source and the regeneration script belong with the GLB exports.
