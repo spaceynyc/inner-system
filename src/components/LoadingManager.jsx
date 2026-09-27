@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 
 const LoadingContext = createContext(null)
 
+// Never leave the visitor behind the preloader: if any asset flag fails to
+// arrive (a blocked request, a crashed subtree) the scene is revealed anyway.
+const PRELOADER_SAFETY_MS = 8000
+
 export function LoadingProvider({ children }) {
     const [assets, setAssets] = useState({
         r3f: { loaded: false, progress: 0 },
@@ -12,6 +16,7 @@ export function LoadingProvider({ children }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isTransitioning, setIsTransitioning] = useState(false)
     const [minTimeElapsed, setMinTimeElapsed] = useState(false)
+    const [safetyElapsed, setSafetyElapsed] = useState(false)
 
     // Minimum display time for smooth UX
     useEffect(() => {
@@ -19,28 +24,36 @@ export function LoadingProvider({ children }) {
         return () => clearTimeout(timer)
     }, [])
 
-    // Preload fonts
     useEffect(() => {
-        const fontUrl = 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff'
+        const timer = setTimeout(() => setSafetyElapsed(true), PRELOADER_SAFETY_MS)
+        return () => clearTimeout(timer)
+    }, [])
 
-        const font = new FontFace('Inter-Preload', `url(${fontUrl})`)
-        font.load()
-            .then(() => {
-                document.fonts.add(font)
-                setAssets(prev => ({
-                    ...prev,
-                    fonts: { loaded: true, progress: 100 }
-                }))
-            })
-            .catch(() => {
-                // Fallback: mark as loaded after timeout
-                setTimeout(() => {
-                    setAssets(prev => ({
-                        ...prev,
-                        fonts: { loaded: true, progress: 100 }
-                    }))
-                }, 2000)
-            })
+    // Warm the self-hosted UI font so the reveal doesn't reflow
+    useEffect(() => {
+        let cancelled = false
+        const markLoaded = () => {
+            if (cancelled) return
+            setAssets(prev => ({ ...prev, fonts: { loaded: true, progress: 100 } }))
+        }
+
+        if (typeof document === 'undefined' || !document.fonts?.load) {
+            markLoaded()
+            return undefined
+        }
+
+        Promise.all([
+            document.fonts.load('100 1em Inter'),
+            document.fonts.load('300 1em Inter'),
+            document.fonts.load('400 1em Inter'),
+            document.fonts.load('600 1em Inter')
+        ]).then(markLoaded, markLoaded)
+
+        const fallback = setTimeout(markLoaded, 2000)
+        return () => {
+            cancelled = true
+            clearTimeout(fallback)
+        }
     }, [])
 
     // Calculate overall progress
@@ -51,7 +64,7 @@ export function LoadingProvider({ children }) {
     )
 
     // Check if all loaded
-    const allLoaded = assets.r3f.loaded && assets.audio.loaded && assets.fonts.loaded
+    const allLoaded = (assets.r3f.loaded && assets.audio.loaded && assets.fonts.loaded) || safetyElapsed
 
     // Trigger transition when ready
     useEffect(() => {

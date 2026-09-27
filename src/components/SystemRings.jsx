@@ -1,6 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { prefersReducedMotion } from '../motion'
 
 const RING_CONFIG = [
     { radius: 2.25, tilt: [0.9, 0.1, 0.25], color: '#7ad7ff', speed: 0.06, phase: 0.0 },
@@ -41,23 +42,24 @@ export default function SystemRings({ frequencyData, scrollData, playState }) {
         const scroll = scrollData?.current?.offset || 0
         const time = state.clock.elapsedTime
         const active = playState ? 1 : 0
+        const drift = prefersReducedMotion() && !playState ? 0 : 1
 
         const finalBloom = THREE.MathUtils.smoothstep(scroll, 0.62, 1)
         const targetScale = 0.82 + scroll * 0.16 + freq.bass * 0.08 + finalBloom * 0.18
         group.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), Math.min(delta * 3.5, 1))
-        group.rotation.y += delta * (0.035 + freq.mid * 0.08)
-        group.rotation.z = Math.sin(time * 0.12) * 0.07
+        group.rotation.y += delta * (0.035 * drift + freq.mid * 0.08)
+        group.rotation.z = Math.sin(time * 0.12) * 0.07 * drift
 
         ringsRef.current.forEach((ring, index) => {
             if (!ring) return
             const config = RING_CONFIG[index]
             const material = ring.material
             const ringActivation = 0.18 + active * 0.34 + freq.average * 0.8 + finalBloom * 0.28
-            const shimmer = Math.sin(time * (0.85 + index * 0.15) + config.phase) * 0.08
+            const shimmer = Math.sin(time * (0.85 + index * 0.15) + config.phase) * 0.08 * drift
             material.opacity = THREE.MathUtils.clamp(ringActivation + shimmer, 0.08, 0.82)
             material.color.set(config.color).lerp(new THREE.Color('#ffffff'), freq.high * 0.35)
-            ring.rotation.z += delta * (config.speed + freq.lowMid * 0.08)
-            ring.scale.setScalar(1 + Math.sin(time * 1.1 + config.phase) * 0.015 + freq.bass * (0.035 + index * 0.008))
+            ring.rotation.z += delta * (config.speed * drift + freq.lowMid * 0.08)
+            ring.scale.setScalar(1 + Math.sin(time * 1.1 + config.phase) * 0.015 * drift + freq.bass * (0.035 + index * 0.008))
         })
     })
 

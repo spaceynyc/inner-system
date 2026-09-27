@@ -1,9 +1,13 @@
 import React from 'react'
 import { LazyMotion, domAnimation, m } from 'framer-motion'
 import { useLoading } from './LoadingManager'
+import { prefersReducedMotion } from '../motion'
 
 export default function Preloader() {
     const { isTransitioning, progress } = useLoading()
+    const reduceMotion = prefersReducedMotion()
+    const exitScale = reduceMotion ? 1 : 1.1
+    const exitBlur = reduceMotion ? 'blur(0px)' : 'blur(10px)'
 
     return (
       <LazyMotion features={domAnimation}>
@@ -12,13 +16,13 @@ export default function Preloader() {
             initial={{ opacity: 1 }}
             animate={{
                 opacity: isTransitioning ? 0 : 1,
-                scale: isTransitioning ? 1.1 : 1,
-                filter: isTransitioning ? 'blur(10px)' : 'blur(0px)'
+                scale: isTransitioning ? exitScale : 1,
+                filter: isTransitioning ? exitBlur : 'blur(0px)'
             }}
             exit={{
                 opacity: 0,
-                scale: 1.1,
-                filter: 'blur(10px)'
+                scale: exitScale,
+                filter: exitBlur
             }}
             transition={{
                 duration: 0.8,
@@ -62,8 +66,8 @@ export default function Preloader() {
                 {/* Brand text */}
                 <m.span
                     className="preloader-text"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 0.6, y: 0 }}
+                    initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                 >
                     THE INNER SYSTEM

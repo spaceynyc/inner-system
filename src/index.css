@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;600&display=swap');
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin-variable.woff2') format('woff2');
+}
 
 :root {
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -14,20 +20,36 @@ body {
   padding: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* keep the bottom controls above mobile browser chrome */
   overflow: hidden; /* ScrollControls manages scroll internally */
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
 }
 
-#root {
+#root,
+.app-shell {
   width: 100%;
   height: 100%;
 }
 
 canvas {
   touch-action: none;
+}
+
+::selection {
+  background: rgba(124, 222, 255, 0.35);
+  color: #f4fbff;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Overlay Styles */
@@ -46,9 +68,10 @@ canvas {
 
 .signal-panel {
   pointer-events: auto;
-  display: grid;
-  grid-template-columns: auto auto;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-end;
   gap: 14px;
   max-width: min(92vw, 620px);
 }
@@ -62,6 +85,7 @@ canvas {
   gap: 16px;
   min-height: 68px;
   padding: 10px 22px 10px 10px;
+  font: inherit;
   color: rgba(238, 247, 255, 0.9);
   background:
     linear-gradient(135deg, rgba(170, 210, 255, 0.16), rgba(120, 255, 215, 0.055)),
@@ -128,11 +152,18 @@ canvas {
 }
 
 .activation-core {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  color: #dff8ff;
+  filter: drop-shadow(0 0 8px rgba(120, 220, 255, 0.9)) drop-shadow(0 4px 14px rgba(160, 115, 255, 0.45));
+}
+
+.activation-glyph {
   width: 12px;
   height: 12px;
-  border-radius: 999px;
-  background: #dff8ff;
-  box-shadow: 0 0 18px rgba(120, 220, 255, 0.9), 0 0 42px rgba(160, 115, 255, 0.45);
+  fill: currentColor;
 }
 
 .activation-button.is-active .activation-core {
@@ -148,9 +179,9 @@ canvas {
 }
 
 .activation-kicker {
-  font-size: 9px;
-  letter-spacing: 0.32em;
-  color: rgba(218, 235, 255, 0.46);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: rgba(218, 235, 255, 0.74);
   text-transform: uppercase;
 }
 
@@ -163,6 +194,7 @@ canvas {
 }
 
 .spectral-hud {
+  pointer-events: none;
   min-width: 172px;
   padding: 14px 16px;
   border: 1px solid rgba(210, 234, 255, 0.16);
@@ -183,13 +215,13 @@ canvas {
 
 .spectral-row {
   display: grid;
-  grid-template-columns: 42px 1fr;
+  grid-template-columns: 44px 1fr;
   align-items: center;
   gap: 10px;
   margin-bottom: 7px;
-  font-size: 9px;
-  letter-spacing: 0.24em;
-  color: rgba(225, 239, 255, 0.54);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: rgba(225, 239, 255, 0.78);
 }
 
 .spectral-row i {
@@ -205,16 +237,17 @@ canvas {
   content: '';
   position: absolute;
   inset: 0;
-  width: var(--level);
   background: linear-gradient(90deg, rgba(124, 222, 255, 0.95), rgba(198, 158, 255, 0.95));
   box-shadow: 0 0 12px rgba(130, 220, 255, 0.55);
   border-radius: inherit;
-  transition: width 120ms linear;
+  transform: scaleX(var(--level, 0));
+  transform-origin: left center;
+  transition: transform 120ms linear;
 }
 
 .waveform {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 3px;
   height: 36px;
   margin-top: 11px;
@@ -223,10 +256,43 @@ canvas {
 
 .waveform span {
   width: 2px;
-  min-height: 8px;
+  height: 36px;
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(220, 249, 255, 0.95), rgba(132, 160, 255, 0.28));
-  transition: height 140ms linear;
+  transform: scaleY(var(--wave, 0.22));
+  transform-origin: center bottom;
+  transition: transform 140ms linear;
+}
+
+.motion-button {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 44px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(238, 247, 255, 0.88);
+  background: rgba(4, 9, 24, 0.52);
+  border: 1px solid rgba(208, 232, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  cursor: pointer;
+  transition: border-color 280ms ease, background 280ms ease;
+}
+
+.motion-button:hover,
+.motion-button:focus-visible {
+  border-color: rgba(190, 230, 255, 0.48);
+}
+
+.motion-button:focus-visible {
+  outline: 2px solid rgba(170, 225, 255, 0.9);
+  outline-offset: 5px;
 }
 
 @keyframes signal-ring {
@@ -246,28 +312,28 @@ canvas {
   align-items: center;
   gap: 8px;
   margin-top: 24px;
-  animation: scroll-bounce 2s ease-in-out infinite;
+  animation: scroll-cue 2s ease-in-out infinite;
 }
 
 .scroll-text {
   font-size: 12px;
   font-weight: 300;
   letter-spacing: 0.3em;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   text-transform: uppercase;
 }
 
 .scroll-arrow {
   width: 24px;
   height: 24px;
-  stroke: rgba(255, 255, 255, 0.6);
+  stroke: rgba(255, 255, 255, 0.8);
   stroke-width: 2;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-@keyframes scroll-bounce {
+@keyframes scroll-cue {
   0%, 100% {
     transform: translateY(0);
     opacity: 1;
@@ -302,13 +368,14 @@ canvas {
 }
 
 .content-card {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(158deg, rgba(5, 12, 31, 0.78), rgba(7, 18, 45, 0.7));
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid rgba(216, 230, 255, 0.2);
   border-radius: 16px;
   padding: 40px;
   max-width: 420px;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.4);
 }
 
 .section-label {
@@ -316,7 +383,7 @@ canvas {
   font-size: 11px;
   font-weight: 300;
   letter-spacing: 0.4em;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(228, 237, 255, 0.72);
   text-transform: uppercase;
   margin-bottom: 16px;
 }
@@ -334,65 +401,78 @@ canvas {
   font-size: 14px;
   font-weight: 300;
   line-height: 1.8;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(225, 233, 250, 0.82);
   margin: 0 0 24px 0;
 }
 
 .section-description-fade {
-  opacity: 0.5;
+  color: rgba(225, 233, 250, 0.7);
   font-style: italic;
   margin-bottom: 16px;
 }
 
+/* Card actions are real buttons: they play the signal, morph the form, or return to the top */
 .section-cta {
+  appearance: none;
+  -webkit-appearance: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  font: inherit;
   font-size: 12px;
   font-weight: 400;
   letter-spacing: 0.2em;
-  color: rgba(170, 204, 255, 0.7);
+  line-height: 1.4;
+  text-align: inherit;
+  color: rgba(190, 216, 255, 0.92);
   text-transform: uppercase;
+  background: none;
+  border: none;
+  border-radius: 8px;
   pointer-events: auto;
-  cursor: default;
+  cursor: pointer;
   transition: color 0.3s ease;
 }
 
 .section-cta svg {
+  flex: none;
   transition: transform 0.3s ease;
 }
 
-.section-cta:hover {
-  color: rgba(170, 204, 255, 1);
+.section-cta:hover,
+.section-cta:focus-visible {
+  color: #ffffff;
 }
 
 .section-cta:hover svg {
   transform: translateX(4px);
 }
 
+.section-cta:focus-visible {
+  outline: 2px solid rgba(170, 225, 255, 0.9);
+  outline-offset: 4px;
+}
+
 .section-cta-final {
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(219, 230, 255, 0.8);
   letter-spacing: 0.15em;
-  background: none;
-  border: none;
-  font-family: inherit;
-  font-size: inherit;
-  padding: 0.5em 1em;
   transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .section-cta-final:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: #ffffff;
   transform: translateY(-2px);
 }
 
-/* Intro section: bottom-center, below 3D title */
+/* Intro section: bottom-center, below 3D title and above the activation panel */
 .section-intro {
   justify-content: flex-end;
   align-items: center;
   text-align: center;
-  padding-bottom: 12vh;
+  padding-bottom: clamp(204px, 23vh, 250px);
 }
 
 .section-intro .content-card {
@@ -400,14 +480,16 @@ canvas {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: none;
+  box-shadow: none;
   padding: 0;
 }
 
 .intro-tagline {
   font-size: 15px;
-  font-weight: 100;
-  letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 200;
+  letter-spacing: 0.12em;
+  color: rgba(240, 246, 255, 0.82);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
   margin-bottom: 0;
 }
 
@@ -434,7 +516,8 @@ canvas {
   justify-content: flex-end;
   align-items: flex-end;
   text-align: left;
-  padding-bottom: clamp(64px, 11vh, 132px);
+  /* the activation panel and HUD occupy roughly the bottom 210px of the viewport */
+  padding-bottom: clamp(224px, 26vh, 280px);
 }
 
 .section-transcend .content-card {
@@ -448,7 +531,7 @@ canvas {
 }
 
 .section-transcend .section-label {
-  color: rgba(228, 237, 255, 0.58);
+  color: rgba(228, 237, 255, 0.72);
 }
 
 .section-transcend .section-heading {
@@ -461,13 +544,6 @@ canvas {
   text-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
 }
 
-.section-transcend .section-cta-final {
-  color: rgba(219, 230, 255, 0.7);
-}
-
-.section-transcend .section-cta-final:hover {
-  color: rgba(236, 243, 255, 0.88);
-}
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -477,7 +553,8 @@ canvas {
   }
 
   .signal-panel {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
     max-width: none;
   }
@@ -489,13 +566,22 @@ canvas {
     padding-right: 18px;
   }
 
+  .motion-button {
+    width: 100%;
+  }
+
+  /* No dead panel before the signal starts: the HUD appears once it has something to show */
   .spectral-hud {
     min-width: 0;
     width: auto;
   }
 
+  .spectral-hud:not(.is-active) {
+    display: none;
+  }
+
   .content-section {
-    padding: 0 6vw;
+    padding: 0 6vw 120px;
   }
 
   .content-card {
@@ -519,7 +605,8 @@ canvas {
     align-items: center;
     text-align: left;
     justify-content: flex-end;
-    padding-bottom: 12vh;
+    /* activation button + HUD + motion button stack when active */
+    padding-bottom: 320px;
   }
 
   .section-transcend .content-card {
@@ -547,14 +634,23 @@ canvas {
   .activation-core,
   .spectral-hud,
   .spectral-row i::after,
-  .waveform span {
+  .waveform span,
+  .motion-button {
     animation: none;
     transition: none;
   }
 
   .section-cta,
-  .section-cta svg {
+  .section-cta svg,
+  .section-cta-final {
     transition: none;
+  }
+
+  .section-cta:hover svg,
+  .section-cta-final:hover,
+  .activation-button:hover,
+  .activation-button:focus-visible {
+    transform: none;
   }
 }
 
@@ -684,7 +780,7 @@ canvas {
   font-size: 11px;
   font-weight: 300;
   letter-spacing: 0.46em;
-  color: rgba(205, 220, 255, 0.55);
+  color: rgba(205, 220, 255, 0.82);
   text-transform: uppercase;
   text-shadow: 0 0 18px rgba(110, 180, 255, 0.15);
 }
