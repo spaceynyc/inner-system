@@ -4,6 +4,8 @@ import { MeshTransmissionMaterial, useDetectGPU } from '@react-three/drei'
 import { easing } from 'maath'
 import * as THREE from 'three'
 import { deviceMotionState } from '../hooks/useDeviceMotion'
+import { controls, announce } from '../controls'
+import { prefersReducedMotion } from '../motion'
 
 // Reduced detail level for better performance
 const DETAIL = 3
@@ -163,7 +165,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         }
     }, [baseGeometry, morphTargetGeometries])
 
-    // Handle click or keyboard to cycle through shapes
+    // Handle click, keyboard, or the shared control bus to cycle through shapes
     const handleMorph = () => {
         const ms = morphState.current
         if (!ms.isMorphing) {
@@ -172,18 +174,24 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             ms.isMorphing = true
             ms.progress = 0
             shockwaveState.current = 1
+            announce(`Form changed to ${SHAPES[ms.currentIndex].name}.`)
         }
     }
 
-    // Allow keyboard users to morph the shape with 'M' key
+    // Allow keyboard users to morph the shape with 'M' key, and expose the
+    // morph to DOM buttons (the "transform it" card action) via the control bus
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'm' || e.key === 'M') {
+            if ((e.key === 'm' || e.key === 'M') && !e.metaKey && !e.ctrlKey && !e.altKey) {
                 handleMorph()
             }
         }
         window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
+        controls.morph = handleMorph
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            if (controls.morph === handleMorph) controls.morph = null
+        }
     }, [])
 
     useFrame((state, delta) => {
@@ -210,6 +218,9 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         const currentPositions = geometry.attributes.position.array
 
         const time = state.clock.elapsedTime
+        // Reduced motion: the form only moves while the visitor has started the signal
+        const stillness = prefersReducedMotion() && !playState
+        const breathScale = stillness ? 0 : 1
 
         // Handle morphing animation
         if (ms.isMorphing) {
@@ -237,9 +248,9 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 const z = fromPositions[idx + 2] + (toPositions[idx + 2] - fromPositions[idx + 2]) * t
 
                 // Breathing stays active during morph for continuity
-                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
+                const breath = (Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
                     + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.03
-                    + Math.sin(time * 0.4) * 0.02
+                    + Math.sin(time * 0.4) * 0.02) * breathScale
 
                 currentPositions[idx] = x + x * breath
                 currentPositions[idx + 1] = y + y * breath
@@ -256,10 +267,10 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
                 const y = targetPositions[idx + 1]
                 const z = targetPositions[idx + 2]
 
-                // Idle breathing animation — always active so the shape feels alive
-                const breath = Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
+                // Idle breathing animation — active unless the visitor asked for reduced motion
+                const breath = (Math.sin(time * 0.8 + x * 2.0 + y * 1.5 + z * 1.8) * 0.045
                     + Math.sin(time * 1.3 + y * 3.0 + z * 2.0) * 0.03
-                    + Math.sin(time * 0.4) * 0.02
+                    + Math.sin(time * 0.4) * 0.02) * breathScale
 
                 // Audio-reactive wave on top of idle breathing
                 const wave = bass > 0.01
@@ -277,7 +288,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         geometry.attributes.position.needsUpdate = true
         normalFrameCounter.current += 1
         const normalsInterval = ms.isMorphing ? 2 : NORMALS_RECALC_EVERY_N_FRAMES
-        if (finishedMorphThisFrame || normalFrameCounter.current % normalsInterval === 0) {
+        if (finishedMorphThisFrame || (!stillness && normalFrameCounter.current % normalsInterval === 0)) {
             geometry.computeVertexNormals()
             if (geometry.attributes.normal) {
                 geometry.attributes.normal.needsUpdate = true
@@ -285,7 +296,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         }
 
         // Audio-reactive rotation - faster with more energy
-        const baseSpeed = playState ? 0.4 : 0.2
+        const baseSpeed = stillness ? 0 : (playState ? 0.4 : 0.2)
         const audioSpeed = baseSpeed + (mid * 0.6) // Mids affect rotation speed
         mesh.current.rotation.x += delta * audioSpeed
         mesh.current.rotation.y += delta * audioSpeed * 1.1
@@ -307,7 +318,7 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
         easing.damp(mesh.current.position, 'x', targetX, 0.2, delta)
 
         // Gentle floating animation with audio influence
-        const floatAmount = 0.2 + bass * 0.3 // Bass makes it bob more
+        const floatAmount = (0.2 + bass * 0.3) * breathScale // Bass makes it bob more
         mesh.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * floatAmount
 
         // Audio-reactive scale - pulse on bass hits
@@ -328,8 +339,8 @@ export default function GlassShape({ playState, frequencyData, scrollData }) {
             core.current.position.copy(mesh.current.position)
             const coreScale = targetScale * (0.22 + freq.average * 0.1 + (playState ? 0.04 : 0))
             easing.damp3(core.current.scale, [coreScale, coreScale, coreScale], 0.18, delta)
-            core.current.rotation.x -= delta * (0.28 + high * 0.8)
-            core.current.rotation.y += delta * (0.42 + mid * 0.9)
+            core.current.rotation.x -= delta * (0.28 * breathScale + high * 0.8)
+            core.current.rotation.y += delta * (0.42 * breathScale + mid * 0.9)
             const coreMaterial = core.current.material
             coreMaterial.opacity = 0.38 + (playState ? 0.2 : 0) + high * 0.18
             coreMaterial.emissiveIntensity = 1.2 + bass * 5.5 + freq.average * 2.5

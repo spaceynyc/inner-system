@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { PresentationControls, Environment, useScroll, Text } from '@react-three/drei'
+import { PresentationControls, useScroll, Text } from '@react-three/drei'
 import { easing } from 'maath'
 import * as THREE from 'three'
 import GlassShape from './GlassShape'
 import DreamBackground from './DreamBackground'
+import SafeEnvironment from './SafeEnvironment'
 import AudioReactiveBackground from './AudioReactiveBackground'
 import SystemRings from './SystemRings'
 import FloatingParticles from './FloatingParticles'
@@ -13,7 +14,11 @@ import { useLoading } from './LoadingManager'
 import ScrollContent from './ScrollContent'
 import { scrollState } from '../scrollState'
 import { audioState } from '../audioState'
+import { announce } from '../controls'
+import { prefersReducedMotion } from '../motion'
 // deviceMotionState moved to GlassShape for direct mesh rotation
+
+const SECTION_FONT = '/fonts/inter-400.woff'
 
 // Scroll section configuration
 const SCROLL_SECTIONS = [
@@ -172,7 +177,7 @@ function ScrollBridge() {
     return null
 }
 
-export default function Experience({ playState }) {
+export default function Experience({ playState, onPlaybackBlocked }) {
     const frequencyDataRef = useRef({ bass: 0, lowMid: 0, mid: 0, high: 0, average: 0 })
     const scrollDataRef = useRef({ offset: 0 })
     const { camera, scene } = useThree()
@@ -232,11 +237,16 @@ export default function Experience({ playState }) {
         if (playState) {
             AudioAnalyser.resume()
                 .then(() => audioElement.play())
-                .catch(error => console.warn('Audio play failed:', error))
+                .catch(error => {
+                    // Autoplay policy or a decode failure: don't pretend the signal is live
+                    console.warn('Audio play failed:', error)
+                    announce('Sound could not start. Press the button again to allow audio.')
+                    onPlaybackBlocked?.()
+                })
         } else {
             audioElement.pause()
         }
-    }, [playState, audioElement])
+    }, [playState, audioElement, onPlaybackBlocked])
 
     // Release audio resources when this scene unmounts or audio element changes.
     useEffect(() => {
@@ -289,12 +299,13 @@ export default function Experience({ playState }) {
             delta
         )
 
-        // Update background and fog colors
+        // Update background and fog colors (clamped so a long frame never extrapolates past the target)
+        const colorBlend = Math.min(delta * 4, 1)
         if (scene.background) {
-            scene.background.lerp(scrollState.bgColor, delta * 4)
+            scene.background.lerp(scrollState.bgColor, colorBlend)
         }
         if (scene.fog) {
-            scene.fog.color.lerp(scrollState.fogColor, delta * 4)
+            scene.fog.color.lerp(scrollState.fogColor, colorBlend)
         }
     })
 
@@ -331,7 +342,7 @@ export default function Experience({ playState }) {
             {/* Scroll-triggered section labels */}
             <ScrollSections scrollData={scrollDataRef} />
 
-            <Environment preset="city" />
+            <SafeEnvironment />
             <ambientLight intensity={0.5} />
             <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
 
@@ -366,10 +377,10 @@ function ScrollSections({ scrollData }) {
 
             // Fade in/out based on section visibility (subtle watermark behind HTML content)
             const targetOpacity = inSection ? 0.3 : 0
-            section.material.opacity += (targetOpacity - section.material.opacity) * delta * 3
+            section.material.opacity += (targetOpacity - section.material.opacity) * Math.min(delta * 3, 1)
 
             // Subtle floating animation when visible
-            if (inSection) {
+            if (inSection && !prefersReducedMotion()) {
                 section.position.y = sectionContent[i].y + Math.sin(state.clock.elapsedTime * 0.5) * 0.1
             }
         })
@@ -382,7 +393,7 @@ function ScrollSections({ scrollData }) {
                     <Text
                         key={i}
                         ref={el => sectionsRef.current[i] = el}
-                        font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
+                        font={SECTION_FONT}
                         fontSize={0.35}
                         color="#ffffff"
                         position={[0, content.y, -4]}

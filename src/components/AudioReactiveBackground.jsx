@@ -6,6 +6,7 @@ import vert from '../shaders/audioBackground.vert?raw'
 import frag from '../shaders/audioBackground.frag?raw'
 import { audioState } from '../audioState'
 import { scrollState } from '../scrollState'
+import { prefersReducedMotion } from '../motion'
 
 export default function AudioReactiveBackground() {
     const materialRef = useRef()
@@ -44,7 +45,10 @@ export default function AudioReactiveBackground() {
         s.average += (targetAverage - s.average) * damp
         s.scroll += (targetScroll - s.scroll) * Math.min(delta * 4, 1)
 
-        mat.uniforms.uTime.value = state.clock.elapsedTime
+        // Reduced motion: the nebula holds still until the visitor starts the signal
+        if (!(prefersReducedMotion() && !audioState.isPlaying)) {
+            mat.uniforms.uTime.value = state.clock.elapsedTime
+        }
         mat.uniforms.uBass.value = s.bass
         mat.uniforms.uMid.value = s.mid
         mat.uniforms.uHigh.value = s.high

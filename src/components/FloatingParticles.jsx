@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Points, PointMaterial } from '@react-three/drei'
 import * as THREE from 'three'
+import { prefersReducedMotion } from '../motion'
 
 // Boosted colors for bloom (exceed luminance threshold when toneMapped is false)
 const WHITE_BLOOM = new THREE.Color('#ffffff').multiplyScalar(1.5)
@@ -25,7 +26,7 @@ function StarLayer({ count, scale, size, opacity, color }) {
     const positions = useMemo(() => buildPositions(count, scale), [count, scale])
 
     useFrame((_, delta) => {
-        if (!pointsRef.current) return
+        if (!pointsRef.current || prefersReducedMotion()) return
         pointsRef.current.rotation.y += delta * 0.02
         pointsRef.current.rotation.x += delta * 0.01
     })

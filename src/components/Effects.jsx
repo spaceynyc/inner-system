@@ -12,6 +12,7 @@ import { useDetectGPU } from '@react-three/drei'
 import { Vector2 } from 'three'
 import { audioState } from '../audioState'
 import { scrollState } from '../scrollState'
+import { prefersReducedMotion } from '../motion'
 
 export default function Effects() {
     const bloomRef = useRef()
@@ -40,15 +41,15 @@ export default function Effects() {
         if (bloomRef.current) {
             // Ramp bloom intensity in the final section for a visual payoff
             const finalT = Math.max(0, (scroll - 0.65) / 0.35) // 0→1 over last 35% (starts earlier)
-            const finalBoost = finalT * finalT * 1.8 // much stronger crescendo
+            const finalBoost = finalT * finalT * 0.9 // crescendo, capped so the frame never washes out
 
             const baseIntensity = 0.8 + finalBoost
-            const audioBoost = isPlaying ? bass * 1.0 : 0
-            bloomRef.current.intensity = baseIntensity + audioBoost
+            const audioBoost = isPlaying ? bass * 0.8 : 0
+            bloomRef.current.intensity = Math.min(baseIntensity + audioBoost, 2.2)
 
-            const baseThreshold = 0.85 - finalBoost * 0.4
-            const thresholdDrop = isPlaying ? average * 0.3 : 0
-            bloomRef.current.luminanceThreshold = Math.max(baseThreshold - thresholdDrop, 0.25)
+            const baseThreshold = 0.85 - finalBoost * 0.3
+            const thresholdDrop = isPlaying ? average * 0.25 : 0
+            bloomRef.current.luminanceThreshold = Math.max(baseThreshold - thresholdDrop, 0.5)
         }
 
         // --- Smooth audio values ---
@@ -67,11 +68,11 @@ export default function Effects() {
             caRef.current.offset.set(caAmount, caAmount)
         }
 
-        // --- Noise (Film Grain): high → opacity, scroll amplifies ---
+        // --- Noise (Film Grain): high → opacity, scroll amplifies; off for reduced motion while idle ---
         if (noiseRef.current) {
             const scrollGrainMult = 1.0 + scroll * 0.3
             const grainOpacity = (0.15 + s.noiseHigh * 0.3) * scrollGrainMult
-            noiseRef.current.blendMode.opacity.value = grainOpacity
+            noiseRef.current.blendMode.opacity.value = prefersReducedMotion() && !isPlaying ? 0 : grainOpacity
         }
 
         // --- Vignette: bass → darkness, scroll tightens, stronger center pull ---
